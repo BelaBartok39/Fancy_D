@@ -12,6 +12,8 @@
 #define MAX_PATH 4096
 #define MAX_EXTENSIONS 1000
 
+// THIS IS IN DEVELOPMENT AND NOT YET FULLY FUNCTIONAL
+
 typedef struct {
     char *extension;
     char *category;
