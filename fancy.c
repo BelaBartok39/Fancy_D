@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <cjson/cJSON.h>
+#include <signal.h>
 
 #define MAX_PATH 4096
 #define MAX_EXTENSIONS 1000
@@ -75,6 +76,7 @@ void load_configs(const char *config_folder) {
         fprintf(stderr, "Memory allocation failed\n");
         exit(1);
     }
+    memset(mappings, 0, sizeof(ExtensionMapping) * MAX_EXTENSIONS);  // Initialize to zero
 
     dir = opendir(config_folder);
     if (dir == NULL) {
@@ -91,6 +93,8 @@ void load_configs(const char *config_folder) {
         if (strstr(ent->d_name, "_config.json") == NULL) {
             continue;
         }
+
+        printf("Loading config file: %s\n", ent->d_name); // *OPTIONAL INFO
 
         snprintf(file_path, sizeof(file_path), "%s/%s", config_folder, ent->d_name);
         
@@ -112,6 +116,10 @@ void load_configs(const char *config_folder) {
 
         cJSON *json = cJSON_Parse(json_str);
         if (json == NULL) {
+            const char *error_ptr = cJSON_GetErrorPtr();
+            if (error_ptr != NULL) {
+                fprintf(stderr, "JSON parse error before: %s\n", error_ptr);
+            }
             fprintf(stderr, "JSON parse error for file: %s\n", file_path);
             free(json_str);
             continue;
@@ -124,8 +132,26 @@ void load_configs(const char *config_folder) {
                 break;
             }
 
-            mappings[mapping_count].extension = strdup(extension->string);
-            mappings[mapping_count].category = strdup(extension->valuestring);
+            const char *ext_str = extension->string;
+            const char *cat_str = extension->valuestring;
+            
+            if (ext_str == NULL || cat_str == NULL) {
+                fprintf(stderr, "Invalid JSON structure in file: %s\n", file_path);
+                continue;
+            }
+
+            mappings[mapping_count].extension = strdup(ext_str);
+            mappings[mapping_count].category = strdup(cat_str);
+
+            if (mappings[mapping_count].extension == NULL || mappings[mapping_count].category == NULL) {
+                fprintf(stderr, "Memory allocation failed for mapping %d\n", mapping_count);
+                exit(1);
+            }
+
+            // printf("Loaded mapping:\n");
+            // print_string_details(mappings[mapping_count].extension);
+            // print_string_details(mappings[mapping_count].category);
+
             mapping_count++;
         }
 
@@ -134,6 +160,21 @@ void load_configs(const char *config_folder) {
     }
 
     closedir(dir);
+    printf("Total mappings loaded: %d\n", mapping_count);
+}
+
+        
+// Only used for debugging
+void print_string_details(const char* str) {
+    printf("String: '");
+    for (int i = 0; str[i] != '\0'; i++) {
+        printf("%c", str[i]);
+    }
+    printf("', Length: %zu, ASCII values: ", strlen(str));
+    for (int i = 0; str[i] != '\0'; i++) {
+        printf("%d ", (unsigned char)str[i]);
+    }
+    printf("\n");
 }
 
 void organize_files(const char *directory, int extreme_sort) {
@@ -159,18 +200,27 @@ void organize_files(const char *directory, int extreme_sort) {
         if (stat(file_path, &file_stat) == 0 && S_ISREG(file_stat.st_mode)) {
             char *extension = strrchr(entry->d_name, '.');
             if (extension != NULL) {
-                extension++; // Move past the dot
+                // Do not increment extension or the world will end
+        //
+                // printf("Processing file: %s with extension: %s\n", entry->d_name, extension);  // *DEBUG
+                // print_string_details(extension);        
+
                 char *category = NULL;
 
                 for (int i = 0; i < mapping_count; i++) {
-                    if (strcasecmp(mappings[i].extension, extension) == 0) {
+                // printf("Comparing '%s' with mapping: '%s' -> '%s'\n", extension, mappings[i].extension, mappings[i].category);  // *DEBUG
+                    int cmp_result = strcasecmp(mappings[i].extension, extension);
+                // printf("strcasecmp result: %d\n", cmp_result);  // Print the result of strcasecmp
+                    if (cmp_result == 0) {
                         category = mappings[i].category;
+                        printf("Match found! Category: %s\n", category);
                         break;
                     }
                 }
 
                 if (category == NULL) {
                     category = "misc";
+                    // printf("No match found, using misc category\n");
                 }
 
                 char category_path[MAX_PATH];
@@ -247,7 +297,14 @@ void add_extension(const char *config_folder, const char *extension, const char 
     free(lowercase_ext);
 }
 
+void segfault_handler(int signal) {
+    fprintf(stderr, "Segmentation fault caught. Exiting...\n");
+    exit(1);
+}
+
+// PROGRAM START
 int main(int argc, char *argv[]) {
+    signal(SIGSEGV, segfault_handler);
     int extreme_sort = 0;
     int verbose = 0;
     char *directory = ".";
