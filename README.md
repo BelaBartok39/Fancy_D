@@ -10,7 +10,6 @@ Fancy Directory Sort is a powerful and customizable file organization tool writt
 - Customizable category configurations using JSON files
 - Ability to add new file extensions to existing categories
 - Support for organizing the current directory or a specified directory
-- Option for extreme sorting (subcategories based on specific file extensions)
 
 ## Installation
 
