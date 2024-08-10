@@ -23,17 +23,20 @@ Fancy Directory Sort is a powerful and customizable file organization tool writt
 ### Steps
 
 1. Clone the repository:
-
+```bash
 git clone https://github.com/yourusername/fancy-directory-sort.git
 cd fancy-directory-sort
+```
 
 2. Compile the program:
-
+```bash
 make
+```
 
 3. Install the program:
-
+```bash
 make install
+```
 
 This will install the `fancyC` executable in your `~/bin` directory. Ensure that `~/bin` is in your PATH.
 
@@ -41,8 +44,9 @@ This will install the `fancyC` executable in your `~/bin` directory. Ensure that
 
 ### Basic Usage
 To organize files in the current directory:
-
+```bash
 fancyC
+```
 
 To organize files in a specific directory:
 
@@ -50,8 +54,9 @@ fancyC /path/to/directory
 
 ### Adding New Extensions
 To add a new file extension to a category:
-
+```bash
 fancyC --add .xyz newcategory
+```
 
 ### Options
 
@@ -76,9 +81,9 @@ You can modify these files to customize your sorting categories and extensions.
 
 ## Uninstall
 To uninstall Fancy Directory Sort:
-
+```bash
 make uninstall
-
+```
 ## Troubleshooting
 If you encounter any issues:
 
@@ -86,6 +91,6 @@ Ensure all dependencies are correctly installed.
 Check that the configuration files in ~/.fancyC/ are properly formatted.
 Use the -v option for verbose output to diagnose issues.
 
-Contributing
+## Contributing
 Contributions to Fancy Directory Sort are welcome! Please feel free to submit pull requests, create issues or spread the word.
 License

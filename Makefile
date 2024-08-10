@@ -10,7 +10,7 @@ BIN_DIR = bin
 SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 DEPS = $(wildcard $(SRC_DIR)/*.h)
-TARGET = $(BIN_DIR)/fancyC
+TARGET = $(BIN_DIR)/fancyD
 
 .PHONY: all clean install uninstall
 
@@ -30,13 +30,13 @@ $(BIN_DIR) $(OBJ_DIR):
 install: $(TARGET)
 	@echo "Installing $(TARGET)"
 	mkdir -p $(HOME)/bin
-	cp $(TARGET) $(HOME)/bin/fancyC
-	chmod +x $(HOME)/bin/fancyC
+	cp $(TARGET) $(HOME)/bin/fancyD
+	chmod +x $(HOME)/bin/fancyD
 	@echo "Installation complete. Make sure $(HOME)/bin is in your PATH."
 
 uninstall:
-	@echo "Uninstalling fancyC"
-	rm -f $(HOME)/bin/fancyC
+	@echo "Uninstalling fancyD"
+	rm -f $(HOME)/bin/fancyD
 	@echo "Uninstallation complete."
 
 clean:
