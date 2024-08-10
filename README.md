@@ -24,8 +24,8 @@ Fancy Directory Sort is a powerful and customizable file organization tool writt
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/fancy-directory-sort.git
-cd fancy-directory-sort
+git clone https://github.com/BelaBartok39/Fancy_D.git
+cd Fancy_D
 ```
 
 2. Compile the program:
@@ -38,36 +38,36 @@ make
 make install
 ```
 
-This will install the `fancyC` executable in your `~/bin` directory. Ensure that `~/bin` is in your PATH.
+This will install the `fancyD` executable in your `~/bin` directory. Ensure that `~/bin` is in your PATH.
 
 ## Usage
 
 ### Basic Usage
 To organize files in the current directory:
 ```bash
-fancyC
+fancyD
 ```
 
 To organize files in a specific directory:
-
-fancyC /path/to/directory
+```bash
+fancyD /path/to/directory
+```
 
 ### Adding New Extensions
 To add a new file extension to a category:
 ```bash
-fancyC --add .xyz newcategory
+fancyD --add .xyz newcategory
 ```
 
 ### Options
 
-- `--extreme`: Enable extreme sorting by individual extensions
 - `--add EXT CATEGORY`: Add a file extension to a category
 - `-v, --verbose`: Enable verbose logging
 - `--uninstall`: Uninstall Fancy Directory Sort
 - `-h, --help`: Display help message
 
 ## Configuration
-Fancy Directory Sort uses JSON configuration files located in `~/.fancyC/` to define file categories. Each category has its own config file (e.g., `document_config.json`, `image_config.json`).
+Fancy Directory Sort uses JSON configuration files located in `~/.fancyD/` to define file categories. Each category has its own config file (e.g., `document_config.json`, `image_config.json`).
 
 Example configuration file (`image_config.json`):
 ```json
@@ -88,9 +88,12 @@ make uninstall
 If you encounter any issues:
 
 Ensure all dependencies are correctly installed.
-Check that the configuration files in ~/.fancyC/ are properly formatted.
+Check that the configuration files in ~/.fancyD/ are properly formatted.
 Use the -v option for verbose output to diagnose issues.
 
 ## Contributing
 Contributions to Fancy Directory Sort are welcome! Please feel free to submit pull requests, create issues or spread the word.
-License
+
+## License
+This project is licensed under the MIT License. See the LICENSE file for details.
+
