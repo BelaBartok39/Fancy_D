@@ -1,32 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <getopt.h>
-#include <ctype.h>
-#include <errno.h>
-#include <cjson/cJSON.h>
-#include <signal.h>
+#include "fancy.h"
 
-#define MAX_PATH 4096
-#define MAX_EXTENSIONS 1000
-
-// THIS IS IN DEVELOPMENT AND NOT YET FULLY FUNCTIONAL
-
-typedef struct {
-    char *extension;
-    char *category;
-} ExtensionMapping;
-
-ExtensionMapping *mappings = NULL;
-int mapping_count = 0;
+extern ExtensionMapping *mappings = NULL;
+extern int mapping_count = 0;
 
 void print_usage(const char *program_name) {
     printf("Usage: %s [OPTIONS] [DIRECTORY]\n", program_name);
     printf("Options:\n");
-    printf("  --extreme           Enable extreme sorting by individual extensions\n");
     printf("  --add EXT CATEGORY  Add a file extension to a category\n");
     printf("  -v, --verbose       Enable verbose logging\n");
     printf("  --uninstall         Uninstall Fancy Directory Sort\n");
@@ -201,26 +180,26 @@ void organize_files(const char *directory, int extreme_sort) {
             char *extension = strrchr(entry->d_name, '.');
             if (extension != NULL) {
                 // Do not increment extension or the world will end
-        //
+        
                 // printf("Processing file: %s with extension: %s\n", entry->d_name, extension);  // *DEBUG
-                // print_string_details(extension);        
+                // print_string_details(extension); // *DEBUG       
 
                 char *category = NULL;
 
                 for (int i = 0; i < mapping_count; i++) {
                 // printf("Comparing '%s' with mapping: '%s' -> '%s'\n", extension, mappings[i].extension, mappings[i].category);  // *DEBUG
                     int cmp_result = strcasecmp(mappings[i].extension, extension);
-                // printf("strcasecmp result: %d\n", cmp_result);  // Print the result of strcasecmp
+                    // printf("strcasecmp result: %d\n", cmp_result);  // *DEBUG Print the result of strcasecmp
                     if (cmp_result == 0) {
                         category = mappings[i].category;
-                        printf("Match found! Category: %s\n", category);
+                        // printf("Match found! Category: %s\n", category); *OPTIONAL INFO
                         break;
                     }
                 }
 
                 if (category == NULL) {
                     category = "misc";
-                    // printf("No match found, using misc category\n");
+                    printf("No match found, using misc category\n");
                 }
 
                 char category_path[MAX_PATH];
@@ -359,7 +338,7 @@ int main(int argc, char *argv[]) {
     char config_folder[MAX_PATH];
     const char *home = getenv("HOME");
     if (home) {
-        snprintf(config_folder, sizeof(config_folder), "%s/.fancyC", home);
+        snprintf(config_folder, sizeof(config_folder), "%s/.fancyD", home);
     } else {
         fprintf(stderr, "Unable to determine home directory\n");
         return 1;
