@@ -26,12 +26,8 @@ void print_usage(const char *program_name);
 void ensure_config_folder(const char *config_folder);
 void create_default_configs(const char *config_folder);
 void load_configs(const char *config_folder);
-void organize_files(const char *directory, int extreme_sort);
+void organize_files(const char *directory);
 void add_extension(const char *config_folder, const char *extension, const char *category);
 void print_string_details(const char* str);
-
-// Global variables (if needed)
-extern ExtensionMapping *mappings;
-extern int mapping_count;
 
 #endif // FANCY_H

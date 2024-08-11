@@ -1,7 +1,7 @@
 #include "fancy.h"
 
-extern ExtensionMapping *mappings = NULL;
-extern int mapping_count = 0;
+ExtensionMapping *mappings = NULL;
+int mapping_count = 0;
 
 void print_usage(const char *program_name) {
     printf("Usage: %s [OPTIONS] [DIRECTORY]\n", program_name);
@@ -156,7 +156,7 @@ void print_string_details(const char* str) {
     printf("\n");
 }
 
-void organize_files(const char *directory, int extreme_sort) {
+void organize_files(const char *directory) {
     DIR *dir;
     struct dirent *entry;
     char file_path[MAX_PATH];
@@ -284,7 +284,7 @@ void segfault_handler(int signal) {
 // PROGRAM START
 int main(int argc, char *argv[]) {
     signal(SIGSEGV, segfault_handler);
-    int extreme_sort = 0;
+  
     int verbose = 0;
     char *directory = ".";
     char *extension = NULL;
@@ -304,9 +304,7 @@ int main(int argc, char *argv[]) {
 
     while ((opt = getopt_long(argc, argv, "eva:h", long_options, &option_index)) != -1) {
         switch (opt) {
-            case 'e':
-                extreme_sort = 1;
-                break;
+            
             case 'v':
                 verbose = 1;
                 break;
@@ -350,7 +348,7 @@ int main(int argc, char *argv[]) {
     if (extension && category) {
         add_extension(config_folder, extension, category);
     } else {
-        organize_files(directory, extreme_sort);
+        organize_files(directory);
     }
 
     for (int i = 0; i < mapping_count; i++) {
