@@ -10,6 +10,8 @@ void print_usage(const char *program_name) {
     printf("  -v, --verbose       Enable verbose logging\n");
     printf("  --uninstall         Uninstall Fancy Directory Sort\n");
     printf("  -h, --help          Display this help message\n");
+    printf("  -d, --default       Create default categories\n");
+    printf("  -r, --reset         Reset categories\n");
 }
 
 void ensure_config_folder(const char *config_folder) {
@@ -25,10 +27,10 @@ void ensure_config_folder(const char *config_folder) {
 // Need to implement this function or figure out why its not being called in Main
 void create_default_configs(const char *config_folder) {
     const char *default_configs[] = {
-        "document_config.json", "{\".txt\": \"Text\", \".doc\": \"Word\", \".pdf\": \"PDF\"}",
-        "image_config.json", "{\".jpg\": \"JPEG\", \".png\": \"PNG\", \".gif\": \"GIF\"}",
-        "audio_config.json", "{\".mp3\": \"MP3\", \".wav\": \"WAV\", \".flac\": \"FLAC\"}",
-        "video_config.json", "{\".mp4\": \"MP4\", \".avi\": \"AVI\", \".mkv\": \"MKV\"}"
+        "document_config.json", "{\".txt\": \"Documents\", \".doc\": \"Documents\", \".pdf\": \"Documents\"}",
+        "image_config.json", "{\".jpg\": \"Images\", \".png\": \"Images\", \".gif\": \"Images\"}",
+        "audio_config.json", "{\".mp3\": \"Audio\", \".wav\": \"Audio\", \".flac\": \"Audio\"}",
+        "video_config.json", "{\".mp4\": \"Video\", \".avi\": \"Video\", \".mkv\": \"Video\"}"
     };
     
     for (size_t i = 0; i < sizeof(default_configs) / sizeof(default_configs[0]); i += 2) {
@@ -61,20 +63,13 @@ void load_configs(const char *config_folder) {
     dir = opendir(config_folder);
     if (dir == NULL) {
         fprintf(stderr, "No configuration files found. Creating default categories.\n");
-        create_default_configs(config_folder);
-        dir = opendir(config_folder);
-        if (dir == NULL) {
-            fprintf(stderr, "Failed to create default configs.\n");
-            exit(1);
-        }
+        exit(1);
     }
 
     while ((ent = readdir(dir)) != NULL) {
         if (strstr(ent->d_name, "_config.json") == NULL) {
             continue;
         }
-
-        printf("Loading config file: %s\n", ent->d_name); // *OPTIONAL INFO
 
         snprintf(file_path, sizeof(file_path), "%s/%s", config_folder, ent->d_name);
         
@@ -291,19 +286,30 @@ int main(int argc, char *argv[]) {
     char *extension = NULL;
     char *category = NULL;
 
+    // Initialize config_folder at the beginning
+    char config_folder[MAX_PATH];
+    const char *home = getenv("HOME");
+    if (home) {
+        snprintf(config_folder, sizeof(config_folder), "%s/.fancyD", home);
+    } else {
+        fprintf(stderr, "Unable to determine home directory\n");
+        return 1;
+    }
+
     static struct option long_options[] = {
-        {"extreme", no_argument, 0, 'e'},
         {"add", required_argument, 0, 'a'},
         {"verbose", no_argument, 0, 'v'},
         {"uninstall", no_argument, 0, 'u'},
         {"help", no_argument, 0, 'h'},
+        {"default", no_argument, 0, 'd'},
+        {"reset", no_argument, 0, 'r'},
         {0, 0, 0, 0}
     };
 
     int opt;
     int option_index = 0;
 
-    while ((opt = getopt_long(argc, argv, "eva:h", long_options, &option_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "va:hdr", long_options, &option_index)) != -1) {
         switch (opt) {
             
             case 'v':
@@ -324,6 +330,11 @@ int main(int argc, char *argv[]) {
             case 'h':
                 print_usage(argv[0]);
                 return 0;
+            case 'd':
+                ensure_config_folder(config_folder);
+                create_default_configs(config_folder);
+                printf("Default categories created\n");
+                return 0;
             default:
                 fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
                 return 1;
@@ -334,24 +345,54 @@ int main(int argc, char *argv[]) {
         directory = argv[optind];
     }
 
-    char config_folder[MAX_PATH];
-    const char *home = getenv("HOME");
-    if (home) {
-        snprintf(config_folder, sizeof(config_folder), "%s/.fancyD", home);
-    } else {
-        fprintf(stderr, "Unable to determine home directory\n");
-        return 1;
-    }
 
     ensure_config_folder(config_folder);
-    load_configs(config_folder);
-
+    
     if (extension && category) {
         add_extension(config_folder, extension, category);
     } else {
+        // Check if any config files exist
+        DIR *dir = opendir(config_folder);
+        struct dirent *ent;
+        int config_count = 0;
+        if (dir != NULL) {
+            while ((ent = readdir(dir)) != NULL) {
+                if (strstr(ent->d_name, "_config.json") != NULL) {
+                    config_count++;
+                    break;
+                }
+            }
+            closedir(dir);
+        }
+
+        if (config_count == 0) {
+            char response;
+            printf("There are no categories added. Do you want to put everything in 'misc'? (y/n): ");
+            scanf(" %c", &response);
+            if (response == 'y' || response == 'Y') {
+                // Create a misc category
+                char misc_config_path[MAX_PATH];
+                snprintf(misc_config_path, sizeof(misc_config_path), "%s/misc_config.json", config_folder);
+                FILE *misc_file = fopen(misc_config_path, "w");
+                if (misc_file) {
+                    fprintf(misc_file, "{\n  \"*\": \"misc\"\n}");
+                    fclose(misc_file);
+                    printf("Created 'misc' category for all files.\n");
+                } else {
+                    fprintf(stderr, "Failed to create 'misc' category.\n");
+                    return 1;
+                }
+            } else {
+                printf("No categories available. Use --default to set up categories.\n");
+                return 0;
+            }
+        }
+
+        load_configs(config_folder);
         organize_files(directory);
     }
 
+    // Free allocated memory
     for (int i = 0; i < mapping_count; i++) {
         free(mappings[i].extension);
         free(mappings[i].category);
