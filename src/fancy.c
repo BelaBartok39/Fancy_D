@@ -22,6 +22,7 @@ void ensure_config_folder(const char *config_folder) {
     }
 }
 
+// Need to implement this function or figure out why its not being called in Main
 void create_default_configs(const char *config_folder) {
     const char *default_configs[] = {
         "document_config.json", "{\".txt\": \"Text\", \".doc\": \"Word\", \".pdf\": \"PDF\"}",
