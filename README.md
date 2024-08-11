@@ -58,6 +58,13 @@ To add a new file extension to a category:
 ```bash
 fancyD --add .xyz newcategory
 ```
+### Reseting the configuration
+To reset the configuration files:
+```bash
+fancyD --reset
+```
+This will reset the configuration files by deleting them.
+
 
 ### Options
 

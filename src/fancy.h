@@ -12,9 +12,13 @@
 #include <errno.h>
 #include <cjson/cJSON.h>
 #include <signal.h>
+#include <ftw.h> // old school baby
 
 #define MAX_PATH 4096
 #define MAX_EXTENSIONS 1000
+#define _XOPEN_SOURCE 500
+#define FTW_DEPTH 1
+#define FTW_PHYS 2 // protects against leaving directory
 
 typedef struct {
     char *extension;

@@ -1,4 +1,13 @@
+// ============================================================================= //
+// Program Name: FancyD (Fancy Directory Organizer)
+// Author: Nicholas D. Redmond (bAbYnIcKy)
+// Date: 8/10/2024
+// Description: Simple program to organize files in a directory based on their file
+// ============================================================================= //
+
 #include "fancy.h"
+
+// What is -v verbose actually doing???
 
 ExtensionMapping *mappings = NULL;
 int mapping_count = 0;
@@ -6,9 +15,8 @@ int mapping_count = 0;
 void print_usage(const char *program_name) {
     printf("Usage: %s [OPTIONS] [DIRECTORY]\n", program_name);
     printf("Options:\n");
-    printf("  --add EXT CATEGORY  Add a file extension to a category\n");
+    printf("  -a, --add EXT CATEGORY  Add a file extension to a category\n");
     printf("  -v, --verbose       Enable verbose logging\n");
-    printf("  --uninstall         Uninstall Fancy Directory Sort\n");
     printf("  -h, --help          Display this help message\n");
     printf("  -d, --default       Create default categories\n");
     printf("  -r, --reset         Reset categories\n");
@@ -21,6 +29,25 @@ void ensure_config_folder(const char *config_folder) {
             fprintf(stderr, "Error creating config folder: %s\n", strerror(errno));
             exit(1);
         }
+    }
+}
+
+int delete_callback(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+    (void)sb;       // Suppress unused parameter
+    (void)typeflag; // Suppress unused parameter 
+    (void)ftwbuf;   // Suppress unused parameter
+    int rv = remove(fpath);
+    if (rv) {
+        perror(fpath);
+    }
+    return rv;
+}
+
+
+void delete_config_files(const char *config_folder) {
+    if (nftw(config_folder, delete_callback, 64, FTW_DEPTH | FTW_PHYS) == -1) {
+        fprintf(stderr, "Error deleting config files: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -84,10 +111,21 @@ void load_configs(const char *config_folder) {
         fseek(f, 0, SEEK_SET);
 
         char *json_str = malloc(fsize + 1);
-        fread(json_str, fsize, 1, f);
-        fclose(f);
+        if (json_str == NULL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            fclose(f);
+            continue;
+        }
+
+        if (fread(json_str, fsize, 1, f) != 1) {
+            fprintf(stderr, "Failed to read file content: %s\n", file_path);
+            free(json_str);
+            fclose(f);
+            continue;
+        }
 
         json_str[fsize] = 0;
+        fclose(f);
 
         cJSON *json = cJSON_Parse(json_str);
         if (json == NULL) {
@@ -122,6 +160,8 @@ void load_configs(const char *config_folder) {
                 fprintf(stderr, "Memory allocation failed for mapping %d\n", mapping_count);
                 exit(1);
             }
+      
+            // OPTIONAL INFO
 
             // printf("Loaded mapping:\n");
             // print_string_details(mappings[mapping_count].extension);
@@ -183,7 +223,7 @@ void organize_files(const char *directory) {
                 char *category = NULL;
 
                 for (int i = 0; i < mapping_count; i++) {
-                // printf("Comparing '%s' with mapping: '%s' -> '%s'\n", extension, mappings[i].extension, mappings[i].category);  // *DEBUG
+                    // printf("Comparing '%s' with mapping: '%s' -> '%s'\n", extension, mappings[i].extension, mappings[i].category);  // *DEBUG
                     int cmp_result = strcasecmp(mappings[i].extension, extension);
                     // printf("strcasecmp result: %d\n", cmp_result);  // *DEBUG Print the result of strcasecmp
                     if (cmp_result == 0) {
@@ -229,7 +269,12 @@ void add_extension(const char *config_folder, const char *extension, const char 
         fseek(file, 0, SEEK_SET);
         content = malloc(file_size + 1);
         if (content) {
-            fread(content, 1, file_size, file);
+            if (fread(content, 1, file_size, file) != file_size) {
+                fprintf(stderr, "Failed to read file content: %s\n", config_path);
+                free(content);
+                fclose(file);
+                return;
+            }
             content[file_size] = '\0';
         }
         fclose(file);
@@ -273,11 +318,12 @@ void add_extension(const char *config_folder, const char *extension, const char 
 }
 
 void segfault_handler(int signal) {
+    (void)signal; // Suppress unused parameter warning
     fprintf(stderr, "Segmentation fault caught. Exiting...\n");
     exit(1);
 }
 
-// PROGRAM START
+                                  // PROGRAM START
 int main(int argc, char *argv[]) {
     signal(SIGSEGV, segfault_handler);
   
@@ -299,7 +345,6 @@ int main(int argc, char *argv[]) {
     static struct option long_options[] = {
         {"add", required_argument, 0, 'a'},
         {"verbose", no_argument, 0, 'v'},
-        {"uninstall", no_argument, 0, 'u'},
         {"help", no_argument, 0, 'h'},
         {"default", no_argument, 0, 'd'},
         {"reset", no_argument, 0, 'r'},
@@ -324,9 +369,6 @@ int main(int argc, char *argv[]) {
                     return 1;
                 }
                 break;
-            case 'u':
-                printf("Uninstall not implemented yet\n");
-                return 0;
             case 'h':
                 print_usage(argv[0]);
                 return 0;
@@ -334,6 +376,12 @@ int main(int argc, char *argv[]) {
                 ensure_config_folder(config_folder);
                 create_default_configs(config_folder);
                 printf("Default categories created\n");
+                return 0;
+            case 'r':
+                ensure_config_folder(config_folder);
+                printf("Resetting configuration files...\n");
+                delete_config_files(config_folder);
+                printf("Configuration files have been reset\n");
                 return 0;
             default:
                 fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
@@ -368,7 +416,10 @@ int main(int argc, char *argv[]) {
         if (config_count == 0) {
             char response;
             printf("There are no categories added. Do you want to put everything in 'misc'? (y/n): ");
-            scanf(" %c", &response);
+            if (scanf(" %c", &response) != 1) {
+                fprintf(stderr, "Failed to read user input\n");
+                return 1;
+            }
             if (response == 'y' || response == 'Y') {
                 // Create a misc category
                 char misc_config_path[MAX_PATH];
