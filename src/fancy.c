@@ -7,9 +7,6 @@
 
 #include <fancy.h>
 
-// What is -v verbose actually doing???
-// What is -a actually doing now???
-// Why is organize files passing test but not actully organizing files after using add???
 
 ExtensionMapping *mappings = NULL;
 int mapping_count = 0;
@@ -437,7 +434,6 @@ void add_extension(const char *config_folder, const char *extension, const char 
         }
     }
 
-    // Add the extension to the new category file
     char new_config_path[MAX_PATH];
     snprintf(new_config_path, sizeof(new_config_path), "%s/%s_config.json", config_folder, new_category);
 
