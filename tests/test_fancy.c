@@ -21,7 +21,95 @@ char* create_temp_dir() {
 
 // ... (existing includes and setup)
 
-// Add this new test function
+// Add these new test functions
+
+START_TEST(test_add_duplicate_extension)
+{
+    char *test_dir = create_temp_dir();
+    char config_folder[MAX_PATH];
+    snprintf(config_folder, sizeof(config_folder), "%s/.fancyD", test_dir);
+
+    // Ensure config folder exists
+    ensure_config_folder(config_folder);
+
+    // Add .txt to Documents category
+    add_extension(config_folder, ".txt", "Documents");
+
+    // Attempt to add .txt to a different category
+    // Simulate user input 'n' to keep it in the original category
+    FILE *input = fmemopen("n", 1, "r");
+    FILE *old_stdin = stdin;
+    stdin = input;
+
+    add_extension(config_folder, ".txt", "Text");
+
+    stdin = old_stdin;
+    fclose(input);
+
+    // Verify .txt is still in Documents category
+    load_configs(config_folder);
+    int found = 0;
+    for (int i = 0; i < mapping_count; i++) {
+        if (strcmp(mappings[i].extension, ".txt") == 0) {
+            ck_assert_str_eq(mappings[i].category, "Documents");
+            found = 1;
+            break;
+        }
+    }
+    ck_assert_int_eq(found, 1);
+
+    // Clean up
+    delete_config_files(config_folder);
+    rmdir(config_folder);
+    rmdir(test_dir);
+}
+END_TEST
+
+START_TEST(test_create_default_configs_with_existing)
+{
+    char *test_dir = create_temp_dir();
+    char config_folder[MAX_PATH];
+    snprintf(config_folder, sizeof(config_folder), "%s/.fancyD", test_dir);
+
+    // Ensure config folder exists
+    ensure_config_folder(config_folder);
+
+    // Add a custom extension that conflicts with defaults
+    add_extension(config_folder, ".png", "CustomImages");
+
+    // Create default configs
+    create_default_configs(config_folder);
+
+    // Verify .png is still in CustomImages category
+    load_configs(config_folder);
+    int found = 0;
+    for (int i = 0; i < mapping_count; i++) {
+        if (strcmp(mappings[i].extension, ".png") == 0) {
+            ck_assert_str_eq(mappings[i].category, "CustomImages");
+            found = 1;
+            break;
+        }
+    }
+    ck_assert_int_eq(found, 1);
+
+    // Verify other default extensions were added
+    int jpg_found = 0;
+    for (int i = 0; i < mapping_count; i++) {
+        if (strcmp(mappings[i].extension, ".jpg") == 0) {
+            ck_assert_str_eq(mappings[i].category, "Images");
+            jpg_found = 1;
+            break;
+        }
+    }
+    ck_assert_int_eq(jpg_found, 1);
+
+    // Clean up
+    delete_config_files(config_folder);
+    rmdir(config_folder);
+    rmdir(test_dir);
+}
+END_TEST
+
 START_TEST(test_add_extension_and_move)
 {
     char *test_dir = create_temp_dir();
@@ -175,27 +263,54 @@ END_TEST
 // Test create_default_configs function
 START_TEST(test_create_default_configs)
 {
-    char* test_path = create_temp_dir();
-    create_default_configs(test_path);
-    
+    char *test_dir = create_temp_dir();
+    char config_folder[MAX_PATH];
+    snprintf(config_folder, sizeof(config_folder), "%s/.fancyD", test_dir);
+
+    printf("Test directory: %s\n", test_dir);
+    printf("Config folder: %s\n", config_folder);
+
+    // Ensure config folder exists
+    ensure_config_folder(config_folder);
+
+    // Create default configs
+    create_default_configs(config_folder);
+
     // Check if default config files were created
+    const char *default_categories[] = {"documents", "images", "audio", "video"};
+    for (size_t i = 0; i < sizeof(default_categories) / sizeof(default_categories[0]); i++) {
+        char file_path[MAX_PATH];
+        snprintf(file_path, sizeof(file_path), "%s/%s_config.json", config_folder, default_categories[i]);
+        printf("Checking for config file: %s\n", file_path);
+        if (access(file_path, F_OK) != 0) {
+            printf("Config file does not exist: %s (errno: %d)\n", file_path, errno);
+            perror("Error details");
+        }
+        ck_assert_msg(access(file_path, F_OK) == 0, "Config file %s does not exist", file_path);
+    }
+
+    // Verify content of a config file
     char file_path[MAX_PATH];
-    snprintf(file_path, sizeof(file_path), "%s/document_config.json", test_path);
-    ck_assert_int_eq(access(file_path, F_OK), 0);
-    
-    // Check content of a config file
-    FILE* file = fopen(file_path, "r");
+    snprintf(file_path, sizeof(file_path), "%s/documents_config.json", config_folder);
+    FILE *file = fopen(file_path, "r");
     ck_assert_ptr_nonnull(file);
+    
     char content[1024];
     size_t read = fread(content, 1, sizeof(content), file);
     fclose(file);
-    ck_assert_int_gt(read, 0);
+    content[read] = '\0';
+    
+    printf("Content of documents_config.json:\n%s\n", content);
+    
     ck_assert_str_ne(content, "");
+    ck_assert_ptr_nonnull(strstr(content, ".txt"));
+    ck_assert_ptr_nonnull(strstr(content, ".doc"));
+    ck_assert_ptr_nonnull(strstr(content, ".pdf"));
 
     // Clean up
-    remove(file_path);
-    rmdir(test_path);
-    free(test_path);
+    delete_config_files(config_folder);
+    rmdir(config_folder);
+    rmdir(test_dir);
 }
 END_TEST
 
@@ -314,6 +429,8 @@ Suite * fancy_suite(void)
     tcase_add_test(tc_core, test_organize_files);
     tcase_add_test(tc_core, test_add_extension_and_sort);
     tcase_add_test(tc_core, test_add_extension_and_move);
+    tcase_add_test(tc_core, test_add_duplicate_extension);
+    tcase_add_test(tc_core, test_create_default_configs_with_existing);
     suite_add_tcase(s, tc_core);
 
     return s;

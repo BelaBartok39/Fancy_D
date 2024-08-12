@@ -23,6 +23,83 @@ int check_path_length(const char *path) {
     return 0;
 }
 
+void list_extensions(const char *config_folder){
+    DIR *dir;
+    struct dirent *ent;
+    char file_path[MAX_PATH];
+
+    dir = opendir(config_folder);
+    if (dir == NULL) {
+        fprintf(stderr, "Unable to open config folder: %s\n", config_folder);
+        return;
+    }
+    
+    printf("Current Extensions and Categories:\n");
+    printf("----------------------------------\n");
+    
+    while((ent = readdir(dir)) != NULL) {
+        if (strstr(ent->d_name, "_config.json") == NULL) {
+            continue;
+        }
+    
+        // Get file path safely (no buffer overflow) 
+        snprintf(file_path, sizeof(file_path), "%s/%s", config_folder, ent->d_name);
+        
+        FILE *f = fopen(file_path, "r");
+        if (f == NULL) {
+            fprintf(stderr, "Unable to open file: %s\n", file_path);
+            continue;
+        }
+        
+        fseek(f, 0, SEEK_END);
+        long fsize = ftell(f);
+        fseek(f, 0, SEEK_SET);
+
+        char *json_str = malloc(fsize + 1);
+        if (json_str == NULL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            fclose(f);
+            continue;
+        }
+        
+        fread(json_str, fsize, 1, f);
+        fclose(f);
+        json_str[fsize] = 0; // set to '\0' DONT FORGET
+        
+        cJSON *json = cJSON_Parse(json_str);
+        free(json_str);
+
+        if (json_str == NULL){
+            fprintf(stderr, "JSON parse error for file: %s\n", file_path);
+            continue;
+        }
+
+        char *category = strdup(ent->d_name);
+        if (category == NULL) {
+            fprintf(stderr, "Memory allocation failed for category name\n");
+            cJSON_Delete(json);
+            continue;
+        }
+        
+        char *underscore = strchr(category, '_');
+        if (underscore != NULL) {
+            *underscore = '\0'; // null-terminate underscore
+        }
+        
+        printf("\nCategory: %s\n", category);
+        
+        cJSON *extension;
+        cJSON_ArrayForEach(extension, json) {
+            printf(" %s\n", extension->string);
+        }
+
+        cJSON_Delete(json);
+        free(category);
+    }
+
+    closedir(dir);
+}
+
 char *create_fallback_path(const char *original_path) {
     char *fallback = malloc(PATH_MAX);
     if (!fallback) {
@@ -48,7 +125,7 @@ int move_file_with_fallback(const char *src, const char *dest) {
             return -1;
         }
 
-        fprintf(stderr, "Using fallback path: %s\n", fallback_dest);
+        printf(stderr, "Using fallback path: %s\n", fallback_dest);
         int result = rename(src, fallback_dest);
         free(fallback_dest);
         return result;
@@ -61,6 +138,7 @@ void print_usage(const char *program_name) {
     printf("Usage: %s [OPTIONS] [DIRECTORY]\n", program_name);
     printf("Options:\n");
     printf("  -a, --add EXT CATEGORY  Add a file extension to a category\n");
+    printf("  -l, --list          Display current categories\n");
     printf("  -h, --help          Display this help message\n");
     printf("  -d, --default       Create default categories\n");
     printf("  -r, --reset         Reset categories\n");
@@ -95,11 +173,15 @@ void delete_config_files(const char *config_folder) {
     }
 }
 
-// Need to implement this function or figure out why its not being called in Main
 void create_default_configs(const char *config_folder) {
+    printf("Creating default configs in folder: %s\n", config_folder);
+    
+    // Load existing configurations
+    load_configs(config_folder);
+
     const char *default_configs[] = {
-        "document_config.json", "{\".txt\": \"Documents\", \".doc\": \"Documents\", \".pdf\": \"Documents\"}",
-        "image_config.json", "{\".jpg\": \"Images\", \".png\": \"Images\", \".gif\": \"Images\"}",
+        "documents_config.json", "{\".txt\": \"Documents\", \".doc\": \"Documents\", \".pdf\": \"Documents\"}",
+        "images_config.json", "{\".jpg\": \"Images\", \".png\": \"Images\", \".gif\": \"Images\"}",
         "audio_config.json", "{\".mp3\": \"Audio\", \".wav\": \"Audio\", \".flac\": \"Audio\"}",
         "video_config.json", "{\".mp4\": \"Video\", \".avi\": \"Video\", \".mkv\": \"Video\"}"
     };
@@ -108,14 +190,27 @@ void create_default_configs(const char *config_folder) {
         char file_path[MAX_PATH];
         snprintf(file_path, sizeof(file_path), "%s/%s", config_folder, default_configs[i]);
         
+        printf("Attempting to create config file: %s\n", file_path);
+
         FILE *f = fopen(file_path, "w");
         if (f == NULL) {
-            fprintf(stderr, "Unable to create default config file: %s\n", file_path);
+            printf("Failed to create config file: %s (errno: %d)\n", file_path, errno);
+            perror("Error details");
             continue;
         }
         
         fputs(default_configs[i+1], f);
         fclose(f);
+        
+        printf("Successfully created config file: %s\n", file_path);
+    }
+
+    // Reload configurations after changes
+    load_configs(config_folder);
+
+    printf("Finished creating default configs. Current mappings:\n");
+    for (int i = 0; i < mapping_count; i++) {
+        printf("%s -> %s\n", mappings[i].extension, mappings[i].category);
     }
 }
 
@@ -326,28 +421,23 @@ void add_extension(const char *config_folder, const char *extension, const char 
     // Check if the extension already exists in any category
     for (int i = 0; i < mapping_count; i++) {
         if (strcasecmp(mappings[i].extension, extension) == 0) {
-            strncpy(existing_category, mappings[i].category, MAX_PATH - 1);
-            found = 1;
+            printf("Extension %s already exists in category %s.\n", extension, mappings[i].category);
+            printf("Do you want to move it to %s? (y/n): ", new_category);
+            
+            char response;
+            scanf(" %c", &response);
+
+            if (response != 'y' && response != 'Y') {
+                printf("Extension %s will remain in category %s.\n", extension, mappings[i].category);
+                return;
+            }
+
+            // Remove the extension from the existing category file
+            char existing_config_path[MAX_PATH];
+            snprintf(existing_config_path, sizeof(existing_config_path), "%s/%s_config.json", config_folder, mappings[i].category);
+            remove_extension_from_config(existing_config_path, extension);
             break;
         }
-    }
-
-    if (found) {
-        printf("Extension %s already exists in category %s.\n", extension, existing_category);
-        printf("Do you want to move it to %s? (y/n): ", new_category);
-        
-        char response;
-        scanf(" %c", &response);
-
-        if (response != 'y' && response != 'Y') {
-            printf("Extension %s will remain in category %s.\n", extension, existing_category);
-            return;
-        }
-
-        // Remove the extension from the existing category file
-        char existing_config_path[MAX_PATH];
-        snprintf(existing_config_path, sizeof(existing_config_path), "%s/%s_config.json", config_folder, existing_category);
-        remove_extension_from_config(existing_config_path, extension);
     }
 
     // Add the extension to the new category file

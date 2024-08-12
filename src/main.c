@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 
     static struct option long_options[] = {
         {"add", required_argument, 0, 'a'},
-        {"verbose", no_argument, 0, 'v'},
+        {"list", no_argument, 0, 'l'},
         {"help", no_argument, 0, 'h'},
         {"default", no_argument, 0, 'd'},
         {"reset", no_argument, 0, 'r'},
@@ -43,11 +43,8 @@ int main(int argc, char *argv[]) {
     int opt;
     int option_index = 0;
 
-    while ((opt = getopt_long(argc, argv, "va:hdr", long_options, &option_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "a:hdrl", long_options, &option_index)) != -1) {
         switch (opt) {
-            case 'v':
-                verbose = 1;
-                break;
             case 'a':
                 if (optind < argc) {
                     extension = optarg;
@@ -70,6 +67,9 @@ int main(int argc, char *argv[]) {
                 printf("Resetting configuration files...\n");
                 delete_config_files(config_folder);
                 printf("Configuration files have been reset\n");
+                return 0;
+            case 'l':
+                list_extensions(config_folder);
                 return 0;
             default:
                 fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);

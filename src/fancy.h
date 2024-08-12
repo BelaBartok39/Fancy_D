@@ -56,7 +56,7 @@ void ensure_config_folder(const char *config_folder);
 void create_default_configs(const char *config_folder);
 void load_configs(const char *config_folder);
 void organize_files(const char *directory);
-void add_extension(const char *config_folder, const char *extension, const char *category);
+void add_extension(const char *config_folder, const char *extension, const char *new_category);
 void print_string_details(const char* str);
 void reload_mappings(const char *config_folder);
 void reset_mappings(const char *config_folder);
@@ -68,6 +68,7 @@ char *create_fallback_path(const char *original_path);
 int move_file_with_fallback(const char *src, const char *dest);
 
 void remove_extension_from_config(const char *config_path, const char *extension);
+void list_extensions(const char *config_folder);
 
 extern ExtensionMapping *mappings;
 extern int mapping_count;
