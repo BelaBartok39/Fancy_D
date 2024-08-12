@@ -1,15 +1,144 @@
-#include "fancy.h"
+// ============================================================================= //
+// Program Name: FancyD (Fancy Directory Organizer)
+// Author: Nicholas D. Redmond (bAbYnIcKy)
+// Date: 8/10/2024
+// Description: Simple program to organize files in a directory based on their file
+// ============================================================================= //
 
-extern ExtensionMapping *mappings = NULL;
-extern int mapping_count = 0;
+#include <fancy.h>
+
+
+ExtensionMapping *mappings = NULL;
+int mapping_count = 0;
+
+
+int check_path_length(const char *path) {
+    if (strlen(path) >= PATH_MAX) {
+        fprintf(stderr, "Warning: Path exceeds maximum length (%d): %s\n", PATH_MAX, path);
+        return 1;
+    }
+    return 0;
+}
+
+void list_extensions(const char *config_folder){
+    DIR *dir;
+    struct dirent *ent;
+    char file_path[MAX_PATH];
+
+    dir = opendir(config_folder);
+    if (dir == NULL) {
+        fprintf(stderr, "Unable to open config folder: %s\n", config_folder);
+        return;
+    }
+    
+    printf("Current Extensions and Categories:\n");
+    printf("----------------------------------\n");
+    
+    while((ent = readdir(dir)) != NULL) {
+        if (strstr(ent->d_name, "_config.json") == NULL) {
+            continue;
+        }
+    
+        // Get file path safely (no buffer overflow) 
+        snprintf(file_path, sizeof(file_path), "%s/%s", config_folder, ent->d_name);
+        
+        FILE *f = fopen(file_path, "r");
+        if (f == NULL) {
+            fprintf(stderr, "Unable to open file: %s\n", file_path);
+            continue;
+        }
+        
+        fseek(f, 0, SEEK_END);
+        long fsize = ftell(f);
+        fseek(f, 0, SEEK_SET);
+
+        char *json_str = malloc(fsize + 1);
+        if (json_str == NULL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            fclose(f);
+            continue;
+        }
+        
+        fread(json_str, fsize, 1, f);
+        fclose(f);
+        json_str[fsize] = 0; // set to '\0' DONT FORGET
+        
+        cJSON *json = cJSON_Parse(json_str);
+        free(json_str);
+
+        if (json_str == NULL){
+            fprintf(stderr, "JSON parse error for file: %s\n", file_path);
+            continue;
+        }
+
+        char *category = strdup(ent->d_name);
+        if (category == NULL) {
+            fprintf(stderr, "Memory allocation failed for category name\n");
+            cJSON_Delete(json);
+            continue;
+        }
+        
+        char *underscore = strchr(category, '_');
+        if (underscore != NULL) {
+            *underscore = '\0'; // null-terminate underscore
+        }
+        
+        printf("\nCategory: %s\n", category);
+        
+        cJSON *extension;
+        cJSON_ArrayForEach(extension, json) {
+            printf(" %s\n", extension->string);
+        }
+
+        cJSON_Delete(json);
+        free(category);
+    }
+
+    closedir(dir);
+}
+
+char *create_fallback_path(const char *original_path) {
+    char *fallback = malloc(PATH_MAX);
+    if (!fallback) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return NULL;
+    }
+    
+    const char *filename = strrchr(original_path, '/');
+    if (filename == NULL) {
+        filename = original_path;
+    } else {
+        filename++; // Skip the slash
+    }
+
+    snprintf(fallback, PATH_MAX, "%s%s", FALLBACK_PREFIX, filename);
+    return fallback;
+}
+
+int move_file_with_fallback(const char *src, const char *dest) {
+    if (check_path_length(src) || check_path_length(dest)) {
+        char *fallback_dest = create_fallback_path(dest);
+        if (!fallback_dest) {
+            return -1;
+        }
+
+        fprintf(stderr, "Using fallback path: %s\n", fallback_dest);
+        int result = rename(src, fallback_dest);
+        free(fallback_dest);
+        return result;
+    }
+
+    return rename(src, dest);
+}
 
 void print_usage(const char *program_name) {
     printf("Usage: %s [OPTIONS] [DIRECTORY]\n", program_name);
     printf("Options:\n");
-    printf("  --add EXT CATEGORY  Add a file extension to a category\n");
-    printf("  -v, --verbose       Enable verbose logging\n");
-    printf("  --uninstall         Uninstall Fancy Directory Sort\n");
+    printf("  -a, --add EXT CATEGORY  Add a file extension to a category\n");
+    printf("  -l, --list          Display current categories\n");
     printf("  -h, --help          Display this help message\n");
+    printf("  -d, --default       Create default categories\n");
+    printf("  -r, --reset         Reset categories\n");
 }
 
 void ensure_config_folder(const char *config_folder) {
@@ -22,26 +151,63 @@ void ensure_config_folder(const char *config_folder) {
     }
 }
 
+int delete_callback(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+    (void)sb;       // Suppress unused parameter
+    (void)typeflag; // Suppress unused parameter 
+    (void)ftwbuf;   // Suppress unused parameter
+    int rv = remove(fpath);
+    if (rv) {
+        perror(fpath);
+    }
+    return rv;
+}
+
+
+void delete_config_files(const char *config_folder) {
+    if (nftw(config_folder, delete_callback, 64, FTW_DEPTH | FTW_PHYS) == -1) {
+        fprintf(stderr, "Error deleting config files: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+}
+
 void create_default_configs(const char *config_folder) {
+    printf("Creating default configs in folder: %s\n", config_folder);
+    
+    // Load existing configurations
+    load_configs(config_folder);
+
     const char *default_configs[] = {
-        "document_config.json", "{\".txt\": \"Text\", \".doc\": \"Word\", \".pdf\": \"PDF\"}",
-        "image_config.json", "{\".jpg\": \"JPEG\", \".png\": \"PNG\", \".gif\": \"GIF\"}",
-        "audio_config.json", "{\".mp3\": \"MP3\", \".wav\": \"WAV\", \".flac\": \"FLAC\"}",
-        "video_config.json", "{\".mp4\": \"MP4\", \".avi\": \"AVI\", \".mkv\": \"MKV\"}"
+        "documents_config.json", "{\".txt\": \"Documents\", \".doc\": \"Documents\", \".pdf\": \"Documents\"}",
+        "images_config.json", "{\".jpg\": \"Images\", \".png\": \"Images\", \".gif\": \"Images\"}",
+        "audio_config.json", "{\".mp3\": \"Audio\", \".wav\": \"Audio\", \".flac\": \"Audio\"}",
+        "video_config.json", "{\".mp4\": \"Video\", \".avi\": \"Video\", \".mkv\": \"Video\"}"
     };
     
     for (size_t i = 0; i < sizeof(default_configs) / sizeof(default_configs[0]); i += 2) {
         char file_path[MAX_PATH];
         snprintf(file_path, sizeof(file_path), "%s/%s", config_folder, default_configs[i]);
         
+        printf("Attempting to create config file: %s\n", file_path);
+
         FILE *f = fopen(file_path, "w");
         if (f == NULL) {
-            fprintf(stderr, "Unable to create default config file: %s\n", file_path);
+            printf("Failed to create config file: %s (errno: %d)\n", file_path, errno);
+            perror("Error details");
             continue;
         }
         
         fputs(default_configs[i+1], f);
         fclose(f);
+        
+        printf("Successfully created config file: %s\n", file_path);
+    }
+
+    // Reload configurations after changes
+    load_configs(config_folder);
+
+    printf("Finished creating default configs. Current mappings:\n");
+    for (int i = 0; i < mapping_count; i++) {
+        printf("%s -> %s\n", mappings[i].extension, mappings[i].category);
     }
 }
 
@@ -50,12 +216,20 @@ void load_configs(const char *config_folder) {
     struct dirent *ent;
     char file_path[MAX_PATH];
 
+    // Free existing mappings if any
+    for (int i = 0; i < mapping_count; i++) {
+        free(mappings[i].extension);
+        free(mappings[i].category);
+    }
+    free(mappings);
+
     mappings = malloc(sizeof(ExtensionMapping) * MAX_EXTENSIONS);
     if (!mappings) {
         fprintf(stderr, "Memory allocation failed\n");
         exit(1);
     }
-    memset(mappings, 0, sizeof(ExtensionMapping) * MAX_EXTENSIONS);  // Initialize to zero
+    memset(mappings, 0, sizeof(ExtensionMapping) * MAX_EXTENSIONS);
+    mapping_count = 0;
 
     dir = opendir(config_folder);
     if (dir == NULL) {
@@ -73,8 +247,6 @@ void load_configs(const char *config_folder) {
             continue;
         }
 
-        printf("Loading config file: %s\n", ent->d_name); // *OPTIONAL INFO
-
         snprintf(file_path, sizeof(file_path), "%s/%s", config_folder, ent->d_name);
         
         FILE *f = fopen(file_path, "r");
@@ -88,10 +260,21 @@ void load_configs(const char *config_folder) {
         fseek(f, 0, SEEK_SET);
 
         char *json_str = malloc(fsize + 1);
-        fread(json_str, fsize, 1, f);
-        fclose(f);
+        if (json_str == NULL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            fclose(f);
+            continue;
+        }
+
+        if (fread(json_str, fsize, 1, f) != 1) {
+            fprintf(stderr, "Failed to read file content: %s\n", file_path);
+            free(json_str);
+            fclose(f);
+            continue;
+        }
 
         json_str[fsize] = 0;
+        fclose(f);
 
         cJSON *json = cJSON_Parse(json_str);
         if (json == NULL) {
@@ -127,10 +310,6 @@ void load_configs(const char *config_folder) {
                 exit(1);
             }
 
-            // printf("Loaded mapping:\n");
-            // print_string_details(mappings[mapping_count].extension);
-            // print_string_details(mappings[mapping_count].category);
-
             mapping_count++;
         }
 
@@ -142,7 +321,6 @@ void load_configs(const char *config_folder) {
     printf("Total mappings loaded: %d\n", mapping_count);
 }
 
-        
 // Only used for debugging
 void print_string_details(const char* str) {
     printf("String: '");
@@ -156,11 +334,15 @@ void print_string_details(const char* str) {
     printf("\n");
 }
 
-void organize_files(const char *directory, int extreme_sort) {
+
+void organize_files(const char *directory) {
+    char config_folder[MAX_PATH];
+    snprintf(config_folder, sizeof(config_folder), "%s/.fancyD", getenv("HOME"));
+    load_configs(config_folder);
+
     DIR *dir;
     struct dirent *entry;
     char file_path[MAX_PATH];
-    char dest_path[MAX_PATH];
     struct stat file_stat;
 
     dir = opendir(directory);
@@ -176,58 +358,91 @@ void organize_files(const char *directory, int extreme_sort) {
 
         snprintf(file_path, sizeof(file_path), "%s/%s", directory, entry->d_name);
 
-        if (stat(file_path, &file_stat) == 0 && S_ISREG(file_stat.st_mode)) {
+        if (lstat(file_path, &file_stat) != 0) {
+            fprintf(stderr, "Unable to get file stats for %s\n", file_path);
+            continue;
+        }
+
+        if (S_ISREG(file_stat.st_mode)) {
             char *extension = strrchr(entry->d_name, '.');
+            char *category = NULL;
+
             if (extension != NULL) {
-                // Do not increment extension or the world will end
-        
-                // printf("Processing file: %s with extension: %s\n", entry->d_name, extension);  // *DEBUG
-                // print_string_details(extension); // *DEBUG       
-
-                char *category = NULL;
-
                 for (int i = 0; i < mapping_count; i++) {
-                // printf("Comparing '%s' with mapping: '%s' -> '%s'\n", extension, mappings[i].extension, mappings[i].category);  // *DEBUG
-                    int cmp_result = strcasecmp(mappings[i].extension, extension);
-                    // printf("strcasecmp result: %d\n", cmp_result);  // *DEBUG Print the result of strcasecmp
-                    if (cmp_result == 0) {
+                    if (strcasecmp(mappings[i].extension, extension) == 0) {
                         category = mappings[i].category;
-                        // printf("Match found! Category: %s\n", category); *OPTIONAL INFO
                         break;
                     }
                 }
-
-                if (category == NULL) {
-                    category = "misc";
-                    printf("No match found, using misc category\n");
-                }
-
-                char category_path[MAX_PATH];
-                snprintf(category_path, sizeof(category_path), "%s/%s", directory, category);
-                mkdir(category_path, 0777);
-
-                snprintf(dest_path, sizeof(dest_path), "%s/%s", category_path, entry->d_name);
-                if (rename(file_path, dest_path) != 0) {
-                    fprintf(stderr, "Failed to move %s to %s\n", file_path, dest_path);
-                } else {
-                    printf("Moved %s to %s\n", entry->d_name, category);
-                }
+            } else {
+                category = "No Extension";
             }
+
+            if (category == NULL) {
+                category = "misc";
+            }
+
+            char category_path[MAX_PATH];
+            if ((size_t)snprintf(category_path, sizeof(category_path), "%s/%s", directory, category) >= sizeof(category_path)) {
+                fprintf(stderr, "Category path too long: %s/%s\n", directory, category);
+                continue;
+            }
+            mkdir(category_path, 0777);
+
+            char dest_path[MAX_PATH];
+            if ((size_t)snprintf(dest_path, sizeof(dest_path), "%s/%s", category_path, entry->d_name) >= sizeof(dest_path)) {
+                fprintf(stderr, "Destination path too long: %s/%s\n", category_path, entry->d_name);
+                continue;
+            }
+
+            if (move_file_with_fallback(file_path, dest_path) != 0) {
+                fprintf(stderr, "Failed to move %s to %s\n", file_path, dest_path);
+            } else {
+                printf("Moved %s to %s\n", entry->d_name, category);
+            }
+        } else {
+            printf("Skipping non-regular file: %s\n", entry->d_name);
         }
     }
 
     closedir(dir);
 }
 
-void add_extension(const char *config_folder, const char *extension, const char *category) {
-    char config_path[MAX_PATH];
-    snprintf(config_path, sizeof(config_path), "%s/%s_config.json", config_folder, category);
+void add_extension(const char *config_folder, const char *extension, const char *new_category) {
+    // Load current mappings
+    load_configs(config_folder);
 
-    FILE *file = fopen(config_path, "r");
+    // Check if the extension already exists in any category
+    for (int i = 0; i < mapping_count; i++) {
+        if (strcasecmp(mappings[i].extension, extension) == 0) {
+            printf("Extension %s already exists in category %s.\n", extension, mappings[i].category);
+            printf("Do you want to move it to %s? (y/n): ", new_category);
+            
+            char response;
+            scanf(" %c", &response);
+
+            if (response != 'y' && response != 'Y') {
+                printf("Extension %s will remain in category %s.\n", extension, mappings[i].category);
+                return;
+            }
+
+            // Remove the extension from the existing category file
+            char existing_config_path[MAX_PATH];
+            snprintf(existing_config_path, sizeof(existing_config_path), "%s/%s_config.json", config_folder, mappings[i].category);
+            remove_extension_from_config(existing_config_path, extension);
+            break;
+        }
+    }
+
+    char new_config_path[MAX_PATH];
+    snprintf(new_config_path, sizeof(new_config_path), "%s/%s_config.json", config_folder, new_category);
+
+    cJSON *json = NULL;
     char *content = NULL;
     long file_size = 0;
 
-    if (file) {
+    FILE *file = fopen(new_config_path, "r");
+    if (file != NULL) {
         fseek(file, 0, SEEK_END);
         file_size = ftell(file);
         fseek(file, 0, SEEK_SET);
@@ -237,127 +452,98 @@ void add_extension(const char *config_folder, const char *extension, const char 
             content[file_size] = '\0';
         }
         fclose(file);
-    }
 
-    cJSON *json = content ? cJSON_Parse(content) : cJSON_CreateObject();
-    free(content);
+        json = cJSON_Parse(content);
+        free(content);
+    }
 
     if (json == NULL) {
-        fprintf(stderr, "Failed to parse config file or create new JSON object\n");
-        return;
+        json = cJSON_CreateObject();
     }
 
-    char *lowercase_ext = strdup(extension);
-    for (int i = 0; lowercase_ext[i]; i++) {
-        lowercase_ext[i] = tolower(lowercase_ext[i]);
-    }
-
-    if (cJSON_HasObjectItem(json, lowercase_ext)) {
-        fprintf(stderr, "Extension %s already exists in category %s\n", lowercase_ext, category);
-        cJSON_Delete(json);
-        free(lowercase_ext);
-        return;
-    }
-
-    cJSON_AddStringToObject(json, lowercase_ext, category);
+    cJSON_AddStringToObject(json, extension, new_category);
 
     char *updated_content = cJSON_Print(json);
-    file = fopen(config_path, "w");
+    file = fopen(new_config_path, "w");
     if (file) {
         fputs(updated_content, file);
         fclose(file);
-        printf("Added extension %s to category %s\n", lowercase_ext, category);
+        printf("Added extension %s to category %s\n", extension, new_category);
     } else {
-        fprintf(stderr, "Failed to write updated config to %s\n", config_path);
+        fprintf(stderr, "Failed to write updated config to %s\n", new_config_path);
     }
 
     cJSON_Delete(json);
     free(updated_content);
-    free(lowercase_ext);
+
+    // Reload mappings to reflect the changes
+    reload_mappings(config_folder);
 }
 
-void segfault_handler(int signal) {
-    fprintf(stderr, "Segmentation fault caught. Exiting...\n");
-    exit(1);
-}
+void remove_extension_from_config(const char *config_path, const char *extension) {
+    FILE *file = fopen(config_path, "r");
+    if (file == NULL) {
+        fprintf(stderr, "Failed to open config file: %s\n", config_path);
+        return;
+    }
 
-// PROGRAM START
-int main(int argc, char *argv[]) {
-    signal(SIGSEGV, segfault_handler);
-    int extreme_sort = 0;
-    int verbose = 0;
-    char *directory = ".";
-    char *extension = NULL;
-    char *category = NULL;
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    char *content = malloc(file_size + 1);
+    if (content == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        fclose(file);
+        return;
+    }
+    fread(content, 1, file_size, file);
+    content[file_size] = '\0';
+    fclose(file);
 
-    static struct option long_options[] = {
-        {"extreme", no_argument, 0, 'e'},
-        {"add", required_argument, 0, 'a'},
-        {"verbose", no_argument, 0, 'v'},
-        {"uninstall", no_argument, 0, 'u'},
-        {"help", no_argument, 0, 'h'},
-        {0, 0, 0, 0}
-    };
+    cJSON *json = cJSON_Parse(content);
+    free(content);
 
-    int opt;
-    int option_index = 0;
+    if (json == NULL) {
+        fprintf(stderr, "Failed to parse JSON in file: %s\n", config_path);
+        return;
+    }
 
-    while ((opt = getopt_long(argc, argv, "eva:h", long_options, &option_index)) != -1) {
-        switch (opt) {
-            case 'e':
-                extreme_sort = 1;
-                break;
-            case 'v':
-                verbose = 1;
-                break;
-            case 'a':
-                if (optind < argc) {
-                    extension = optarg;
-                    category = argv[optind++];
-                } else {
-                    fprintf(stderr, "Error: --add requires two arguments\n");
-                    return 1;
-                }
-                break;
-            case 'u':
-                printf("Uninstall not implemented yet\n");
-                return 0;
-            case 'h':
-                print_usage(argv[0]);
-                return 0;
-            default:
-                fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
-                return 1;
+    cJSON_DeleteItemFromObject(json, extension);
+
+    if (cJSON_GetArraySize(json) == 0) {
+        // If the JSON object is empty, delete the file
+        cJSON_Delete(json);
+        if (remove(config_path) == 0) {
+            printf("Removed empty config file: %s\n", config_path);
+        } else {
+            fprintf(stderr, "Failed to remove empty config file: %s\n", config_path);
         }
-    }
-
-    if (optind < argc) {
-        directory = argv[optind];
-    }
-
-    char config_folder[MAX_PATH];
-    const char *home = getenv("HOME");
-    if (home) {
-        snprintf(config_folder, sizeof(config_folder), "%s/.fancyD", home);
     } else {
-        fprintf(stderr, "Unable to determine home directory\n");
-        return 1;
+        char *updated_content = cJSON_Print(json);
+        file = fopen(config_path, "w");
+        if (file) {
+            fputs(updated_content, file);
+            fclose(file);
+            printf("Removed extension %s from %s\n", extension, config_path);
+        } else {
+            fprintf(stderr, "Failed to write updated config to %s\n", config_path);
+        }
+        cJSON_Delete(json);
+        free(updated_content);
     }
+}
 
-    ensure_config_folder(config_folder);
-    load_configs(config_folder);
-
-    if (extension && category) {
-        add_extension(config_folder, extension, category);
-    } else {
-        organize_files(directory, extreme_sort);
-    }
-
+void reload_mappings(const char *config_folder) {
+    // Free existing mappings
     for (int i = 0; i < mapping_count; i++) {
         free(mappings[i].extension);
         free(mappings[i].category);
     }
     free(mappings);
+    mappings = NULL;
+    mapping_count = 0;
 
-    return 0;
+    // Reload mappings
+    load_configs(config_folder);
 }
+
