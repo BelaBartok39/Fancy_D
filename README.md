@@ -8,9 +8,10 @@ Fancy Directory Sort is a powerful and customizable file organization tool writt
 
 - Automatic file sorting based on file extensions
 - Customizable category configurations using JSON files
-- Ability to add new file extensions to existing categories
+- Ability to add new file extensions to existing categories or create new categories
 - Support for organizing the current directory or a specified directory
 - Option for extreme sorting (subcategories based on specific file extensions)
+- Handles long file paths with fallback strategies
 
 ## Installation
 
@@ -56,21 +57,28 @@ fancyD /path/to/directory
 ### Adding New Extensions
 To add a new file extension to a category:
 ```bash
-fancyD --add .xyz newcategory
+fancyD --add .xyz NewCategory
 ```
-### Reseting the configuration
+If the extension already exists in another category, you'll be prompted to move it.
+
+### Resetting the configuration
 To reset the configuration files:
 ```bash
 fancyD --reset
 ```
-This will reset the configuration files by deleting them.
+This will delete all existing configuration files.
 
+### Creating Default Categories
+To create default category configurations:
+```bash
+fancyD --default
+```
 
 ### Options
 
 - `--add EXT CATEGORY`: Add a file extension to a category
-- `-v, --verbose`: Enable verbose logging
-- `--uninstall`: Uninstall Fancy Directory Sort
+- `--default`: Create default categories
+- `--reset`: Reset all configurations
 - `-h, --help`: Display help message
 
 ## Configuration
@@ -86,21 +94,15 @@ Example configuration file (`image_config.json`):
 ```
 You can modify these files to customize your sorting categories and extensions.
 
-## Uninstall
-To uninstall Fancy Directory Sort:
-```bash
-make uninstall
-```
 ## Troubleshooting
 If you encounter any issues:
 
-Ensure all dependencies are correctly installed.
-Check that the configuration files in ~/.fancyD/ are properly formatted.
-Use the -v option for verbose output to diagnose issues.
+- Ensure all dependencies are correctly installed.
+- Check that the configuration files in ~/.fancyD/ are properly formatted.
+- If you encounter issues with long file paths, the program will attempt to use a fallback strategy.
 
 ## Contributing
 Contributions to Fancy Directory Sort are welcome! Please feel free to submit pull requests, create issues or spread the word.
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for details.
-
