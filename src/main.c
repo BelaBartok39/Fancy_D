@@ -17,7 +17,6 @@ void segfault_handler(int signal) {
 int main(int argc, char *argv[]) {
     signal(SIGSEGV, segfault_handler);
   
-    int verbose = 0;
     char *directory = ".";
     char *extension = NULL;
     char *category = NULL;

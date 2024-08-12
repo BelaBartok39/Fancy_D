@@ -125,7 +125,7 @@ int move_file_with_fallback(const char *src, const char *dest) {
             return -1;
         }
 
-        printf(stderr, "Using fallback path: %s\n", fallback_dest);
+        fprintf(stderr, "Using fallback path: %s\n", fallback_dest);
         int result = rename(src, fallback_dest);
         free(fallback_dest);
         return result;
@@ -386,14 +386,14 @@ void organize_files(const char *directory) {
             }
 
             char category_path[MAX_PATH];
-            if (snprintf(category_path, sizeof(category_path), "%s/%s", directory, category) >= sizeof(category_path)) {
+            if ((size_t)snprintf(category_path, sizeof(category_path), "%s/%s", directory, category) >= sizeof(category_path)) {
                 fprintf(stderr, "Category path too long: %s/%s\n", directory, category);
                 continue;
             }
             mkdir(category_path, 0777);
 
             char dest_path[MAX_PATH];
-            if (snprintf(dest_path, sizeof(dest_path), "%s/%s", category_path, entry->d_name) >= sizeof(dest_path)) {
+            if ((size_t)snprintf(dest_path, sizeof(dest_path), "%s/%s", category_path, entry->d_name) >= sizeof(dest_path)) {
                 fprintf(stderr, "Destination path too long: %s/%s\n", category_path, entry->d_name);
                 continue;
             }
@@ -414,9 +414,6 @@ void organize_files(const char *directory) {
 void add_extension(const char *config_folder, const char *extension, const char *new_category) {
     // Load current mappings
     load_configs(config_folder);
-
-    char existing_category[MAX_PATH] = {0};
-    int found = 0;
 
     // Check if the extension already exists in any category
     for (int i = 0; i < mapping_count; i++) {
