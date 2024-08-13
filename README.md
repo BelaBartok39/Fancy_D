@@ -15,7 +15,7 @@ Fancy Directory Sort (FancyD) is a pretty darn powerful and customizable file or
 
 ## Installation
 
-### Prerequisites
+### Requirements
 
 - GCC compiler
 - Make utility
@@ -39,9 +39,16 @@ make
 make install
 ```
 
+4. Clean up.
+```bash
+make clean
+```
+
 This will install the `fancyD` executable in your `~/bin` directory. Ensure that `~/bin` is in your PATH.
 
 ## Usage
+
+Before running this baby on your files, feel free to use our python example scripts (normal/extreme). Either one creates a Test directory full of blank files with random extensions. You can use this to tryout Fancy and see how it easy it is before moving any of your own files. 
 
 ### Basic Usage
 To organize files in the current directory:
@@ -117,7 +124,7 @@ If you encounter any issues:
 - There may be some inconsistencies in handling the `--add` option. (Rare at the moment)
 
 ## Contributing
-Contributions to Fancy Directory Sort are welcome! Please feel free to submit pull requests, create issues or spread the word.
+Contributions (and suggestions) to Fancy Directory Sort are welcome! Please feel free to submit pull requests, create issues or spread the word.
 
 ## License
 This project is licensed under the MIT License. Naturally, we are not responsible for what happens to your files if software is not used as designed. Source code available for free. 
