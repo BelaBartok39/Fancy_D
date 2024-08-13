@@ -1,0 +1,3 @@
+libcjson-dev
+build-essential
+check

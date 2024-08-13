@@ -1,16 +1,17 @@
 // ============================================================================= //
 // Program Name: FancyD (Fancy Directory Organizer)
-// Author: Nicholas D. Redmond (bAbYnIcKy)
-// Date: 8/10/2024
+// Author: Nicholas D. Redmond (6a6yN1cKy)
+// Date: 8/13/2024
 // Description: Simple program to organize files in a directory based on their file
 // ============================================================================= //
 
-
 #include <fancy.h>
+#include <color_utils.h>
+#include <utils.h>
 
 void segfault_handler(int signal) {
     (void)signal; // Suppress unused parameter warning
-    fprintf(stderr, "Segmentation fault caught. Exiting...\n");
+    print_red("Segmentation fault caught. Exiting...\n");
     exit(1);
 }
 
@@ -26,7 +27,7 @@ int main(int argc, char *argv[]) {
     if (home) {
         snprintf(config_folder, sizeof(config_folder), "%s/.fancyD", home);
     } else {
-        fprintf(stderr, "Unable to determine home directory\n");
+        print_red("Unable to determine home directory\n");
         return 1;
     }
 
@@ -49,7 +50,7 @@ int main(int argc, char *argv[]) {
                     extension = optarg;
                     category = argv[optind++];
                 } else {
-                    fprintf(stderr, "Error: --add requires two arguments\n");
+                    print_red("Error: --add requires two arguments\n");
                     return 1;
                 }
                 break;
@@ -59,19 +60,19 @@ int main(int argc, char *argv[]) {
             case 'd':
                 ensure_config_folder(config_folder);
                 create_default_configs(config_folder);
-                printf("Default categories created\n");
+                print_green("Default categories created\n");
                 return 0;
             case 'r':
                 ensure_config_folder(config_folder);
-                printf("Resetting configuration files...\n");
+                print_yellow("Resetting configuration files...\n");
                 delete_config_files(config_folder);
-                printf("Configuration files have been reset\n");
+                print_green("Configuration files have been reset\n");
                 return 0;
             case 'l':
                 list_extensions(config_folder);
                 return 0;
             default:
-                fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+                print_yellow("Try '%s --help' for more information.\n", argv[0]);
                 return 1;
         }
     }
@@ -101,26 +102,33 @@ int main(int argc, char *argv[]) {
 
         if (config_count == 0) {
             char response;
-            printf("There are no categories added. Do you want to put everything in 'misc'? (y/n): ");
+            print_yellow("There are no categories added. Do you want to put everything in 'misc'? (y/n): ");
             if (scanf(" %c", &response) != 1) {
-                fprintf(stderr, "Failed to read user input\n");
+                print_red("Failed to read user input\n");
                 return 1;
             }
             if (response == 'y' || response == 'Y') {
                 // Create a misc category
-                char misc_config_path[MAX_PATH];
-                snprintf(misc_config_path, sizeof(misc_config_path), "%s/misc_config.json", config_folder);
+                char* misc_config_path = safe_path_join(config_folder, "misc_config.json");
+                if (misc_config_path == NULL) {
+                    fprintf(stderr, "Failed to construct path for misc_config.json\n");
+                    return 1;
+                }
+// Use misc_config_path...
+
                 FILE *misc_file = fopen(misc_config_path, "w");
                 if (misc_file) {
                     fprintf(misc_file, "{\n  \"*\": \"misc\"\n}");
                     fclose(misc_file);
-                    printf("Created 'misc' category for all files.\n");
+                    free(misc_config_path);
+                    print_green("Created 'misc' category for all files.\n");
                 } else {
-                    fprintf(stderr, "Failed to create 'misc' category.\n");
+                    print_red("Failed to create 'misc' category.\n");
+                    free(misc_config_path);
                     return 1;
                 }
             } else {
-                printf("No categories available. Use --default to set up categories.\n");
+                print_yellow("No categories available. Use --default to set up categories.\n");
                 return 0;
             }
         }
@@ -135,6 +143,6 @@ int main(int argc, char *argv[]) {
         free(mappings[i].category);
     }
     free(mappings);
-
     return 0;
 }
+

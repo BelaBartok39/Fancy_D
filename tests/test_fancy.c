@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "../src/fancy.h"
+#include "../src/utils.h"
 
 // Helper function to create a temporary directory
 char* create_temp_dir() {
@@ -123,8 +124,10 @@ START_TEST(test_add_extension_and_move)
     add_extension(config_folder, ".png", "Images");
 
     // Check if the extension was added correctly
-    char config_path[MAX_PATH];
-    snprintf(config_path, sizeof(config_path), "%s/Images_config.json", config_folder);
+    char* config_path = safe_path_join(config_folder, "Images_config.json");
+    if (config_path == NULL) {
+        ck_abort_msg("Failed to construct path");
+    }
     
     FILE *file = fopen(config_path, "r");
     ck_assert_ptr_nonnull(file);
@@ -148,24 +151,32 @@ START_TEST(test_add_extension_and_move)
     fclose(input);
 
     // Check if the extension was moved correctly
-    snprintf(config_path, sizeof(config_path), "%s/Photos_config.json", config_folder);
+    config_path = safe_path_join(config_folder, "Photos_config.json");
+    if (config_path == NULL) {
+        ck_abort_msg("Failed to construct path");
+    }
     
     file = fopen(config_path, "r");
     ck_assert_ptr_nonnull(file);
     
     read = fread(content, 1, sizeof(content), file);
     fclose(file);
+    free(config_path);
     content[read] = '\0';
     
     ck_assert_str_eq(content, "{\n\t\".png\":\t\"Photos\"\n}");
 
     // Check if the extension was removed from the old category
-    snprintf(config_path, sizeof(config_path), "%s/Images_config.json", config_folder);
+    config_path = safe_path_join(config_folder, "Images_config.json");
+    if (config_path == NULL) {
+        ck_abort_msg("Failed to construct path");
+    }
     
     file = fopen(config_path, "r");
     ck_assert_ptr_null(file);  // File should not exist
 
     // Clean up
+    free(config_path);
     delete_config_files(config_folder);
     rmdir(config_folder);
     rmdir(test_dir);
@@ -279,19 +290,27 @@ START_TEST(test_create_default_configs)
     // Check if default config files were created
     const char *default_categories[] = {"documents", "images", "audio", "video"};
     for (size_t i = 0; i < sizeof(default_categories) / sizeof(default_categories[0]); i++) {
-        char file_path[MAX_PATH];
-        snprintf(file_path, sizeof(file_path), "%s/%s_config.json", config_folder, default_categories[i]);
+        char filename[MAX_PATH];
+        snprintf(filename, sizeof(filename), "%s_config.json", default_categories[i]);
+        char* file_path = safe_path_join(config_folder, filename);
+        if (file_path == NULL) {
+            ck_abort_msg("Failed to construct path for %s", filename);
+        }
         printf("Checking for config file: %s\n", file_path);
         if (access(file_path, F_OK) != 0) {
             printf("Config file does not exist: %s (errno: %d)\n", file_path, errno);
             perror("Error details");
         }
         ck_assert_msg(access(file_path, F_OK) == 0, "Config file %s does not exist", file_path);
+        free(file_path);
     }
 
     // Verify content of a config file
-    char file_path[MAX_PATH];
-    snprintf(file_path, sizeof(file_path), "%s/documents_config.json", config_folder);
+    char *file_path = safe_path_join(config_folder, "documents_config.json");
+    if (file_path == NULL) {
+        ck_abort_msg("Failed to construct path for documents_config.json");
+    }
+
     FILE *file = fopen(file_path, "r");
     ck_assert_ptr_nonnull(file);
     

@@ -1,0 +1,18 @@
+# Ignore compiled binaries
+bin/
+
+# Ignore object files
+*.o
+
+# Ignore TODO.md
+TODO.md
+
+# Ignore the build directory
+build/
+
+# Ignore log files
+*.log
+
+# Ignore Test Folder
+tests/Test
+

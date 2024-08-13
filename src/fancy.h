@@ -1,7 +1,7 @@
 // ============================================================================= //
 // Program Name: FancyD (Fancy Directory Organizer)
-// Author: Nicholas D. Redmond (bAbYnIcKy)
-// Date: 8/10/2024
+// Author: Nicholas D. Redmond (6a6yN1cKy)
+// Date: 8/13/2024
 // Description: Simple program to organize files in a directory based on their file
 // ============================================================================= //
 
@@ -42,7 +42,7 @@
     #define MAX_PATH PATH_MAX
 #else
     // PATH_MAX is not defined, fall back to a default value
-    #define MAX_PATH 4096
+    #define MAX_PATH 5008
 #endif
 
 typedef struct {

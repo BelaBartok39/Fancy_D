@@ -1,7 +1,7 @@
 // ============================================================================= //
 // Program Name: FancyD (Fancy Directory Organizer)
-// Author: Nicholas D. Redmond (bAbYnIcKy)
-// Date: 8/10/2024
+// Author: Nicholas D. Redmond (6a6yN1cKy)
+// Date: 8/13/2024
 // Description: Simple program to organize files in a directory based on their file
 // ============================================================================= //
 
@@ -546,4 +546,3 @@ void reload_mappings(const char *config_folder) {
     // Reload mappings
     load_configs(config_folder);
 }
-
