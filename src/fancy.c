@@ -31,7 +31,7 @@ void list_extensions(const char *config_folder){
         return;
     }
     
-    printf("Current Extensions and Categories:\n");
+    printf("\nCurrent Extensions and Categories:\n");
     printf("----------------------------------\n");
     
     while((ent = readdir(dir)) != NULL) {
@@ -93,7 +93,7 @@ void list_extensions(const char *config_folder){
         cJSON_Delete(json);
         free(category);
     }
-
+    printf("\n");
     closedir(dir);
 }
 
