@@ -13,3 +13,6 @@ build/
 # Ignore log files
 *.log
 
+# Ignore Test Folder
+tests/Test
+
