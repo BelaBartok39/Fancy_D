@@ -20,10 +20,6 @@ char* create_temp_dir() {
     return strdup(temp_dir);
 }
 
-// ... (existing includes and setup)
-
-// Add these new test functions
-
 START_TEST(test_add_duplicate_extension)
 {
     char *test_dir = create_temp_dir();
