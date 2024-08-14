@@ -20,6 +20,68 @@ char* create_temp_dir() {
     return strdup(temp_dir);
 }
 
+START_TEST(test_organize_files_with_uncategorized)
+{
+    char *test_dir = create_temp_dir();
+    
+    // Set up the config folder path
+    char config_folder[MAX_PATH];
+    snprintf(config_folder, sizeof(config_folder), "%s/.fancyD", test_dir);
+
+    // Set the HOME environment variable to our test directory
+    setenv("HOME", test_dir, 1);
+
+    // Ensure config folder exists and create default configs
+    ensure_config_folder(config_folder);
+    create_default_configs(config_folder);
+
+    // Create test files (both categorized and uncategorized)
+    char file_path[MAX_PATH];
+    snprintf(file_path, sizeof(file_path), "%s/test.txt", test_dir);
+    FILE *file = fopen(file_path, "w");
+    fclose(file);
+    
+    snprintf(file_path, sizeof(file_path), "%s/test.jpg", test_dir);
+    file = fopen(file_path, "w");
+    fclose(file);
+    
+    snprintf(file_path, sizeof(file_path), "%s/uncategorized.xyz", test_dir);
+    file = fopen(file_path, "w");
+    fclose(file);
+
+    // Simulate user input for the prompt
+    FILE *input = fmemopen("y\n", 2, "r");
+    FILE *old_stdin = stdin;
+    stdin = input;
+
+    // Organize files
+    organize_files(test_dir);
+
+    // Restore original stdin
+    stdin = old_stdin;
+    fclose(input);
+
+    // Check if the files were moved to correct categories
+    snprintf(file_path, sizeof(file_path), "%s/Documents/test.txt", test_dir);
+    ck_assert_int_eq(access(file_path, F_OK), 0);
+    
+    snprintf(file_path, sizeof(file_path), "%s/Images/test.jpg", test_dir);
+    ck_assert_int_eq(access(file_path, F_OK), 0);
+    
+    // Check if uncategorized file was moved to misc
+    snprintf(file_path, sizeof(file_path), "%s/misc/uncategorized.xyz", test_dir);
+    ck_assert_int_eq(access(file_path, F_OK), 0);
+
+    // Clean up
+    delete_config_files(config_folder);
+    rmdir(config_folder);
+    rmdir(test_dir);
+
+    // Reset HOME environment variable
+    unsetenv("HOME");
+}
+END_TEST
+
 START_TEST(test_add_duplicate_extension)
 {
     char *test_dir = create_temp_dir();
@@ -446,8 +508,9 @@ Suite * fancy_suite(void)
     tcase_add_test(tc_core, test_add_extension_and_move);
     tcase_add_test(tc_core, test_add_duplicate_extension);
     tcase_add_test(tc_core, test_create_default_configs_with_existing);
+    tcase_add_test(tc_core, test_organize_files_with_uncategorized);
     suite_add_tcase(s, tc_core);
-
+    
     return s;
 }
 
