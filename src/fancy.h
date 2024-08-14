@@ -24,7 +24,7 @@
 #include <ftw.h> // old school baby
 #include <strings.h>
 #include <limits.h>
-
+#include <stdbool.h>
 
 #define MAX_EXTENSIONS 1000
 #define FALLBACK_PREFIX "/tmp/fancyD_fallback_"

@@ -344,6 +344,8 @@ void organize_files(const char *directory) {
     struct dirent *entry;
     char file_path[MAX_PATH];
     struct stat file_stat;
+    bool uncategorized_files_found = false;
+    bool handle_misc = false;
 
     dir = opendir(directory);
     if (dir == NULL) {
@@ -351,6 +353,51 @@ void organize_files(const char *directory) {
         return;
     }
 
+    // First pass: check for uncategorized files
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        snprintf(file_path, sizeof(file_path), "%s/%s", directory, entry->d_name);
+
+        if (lstat(file_path, &file_stat) != 0) {
+            fprintf(stderr, "Unable to get file stats for %s\n", file_path);
+            continue;
+        }
+
+        if (S_ISREG(file_stat.st_mode)) {
+            char *extension = strrchr(entry->d_name, '.');
+            bool categorized = false;
+
+            if (extension != NULL) {
+                for (int i = 0; i < mapping_count; i++) {
+                    if (strcasecmp(mappings[i].extension, extension) == 0) {
+                        categorized = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!categorized) {
+                uncategorized_files_found = true;
+                break;
+            }
+        }
+    }
+
+    // If uncategorized files are found, prompt the user
+    if (uncategorized_files_found) {
+        char response;
+        printf("Uncategorized files found. Do you want to put them in a 'misc' folder? (y/n): ");
+        scanf(" %c", &response);
+        handle_misc = (response == 'y' || response == 'Y');
+    }
+
+    // Reset directory stream for second pass
+    rewinddir(dir);
+
+    // Second pass: organize files
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
             continue;
@@ -374,31 +421,33 @@ void organize_files(const char *directory) {
                         break;
                     }
                 }
-            } else {
-                category = "No Extension";
             }
 
-            if (category == NULL) {
+            if (category == NULL && handle_misc) {
                 category = "misc";
             }
 
-            char category_path[MAX_PATH];
-            if ((size_t)snprintf(category_path, sizeof(category_path), "%s/%s", directory, category) >= sizeof(category_path)) {
-                fprintf(stderr, "Category path too long: %s/%s\n", directory, category);
-                continue;
-            }
-            mkdir(category_path, 0777);
+            if (category != NULL) {
+                char category_path[MAX_PATH];
+                if ((size_t)snprintf(category_path, sizeof(category_path), "%s/%s", directory, category) >= sizeof(category_path)) {
+                    fprintf(stderr, "Category path too long: %s/%s\n", directory, category);
+                    continue;
+                }
+                mkdir(category_path, 0777);
 
-            char dest_path[MAX_PATH];
-            if ((size_t)snprintf(dest_path, sizeof(dest_path), "%s/%s", category_path, entry->d_name) >= sizeof(dest_path)) {
-                fprintf(stderr, "Destination path too long: %s/%s\n", category_path, entry->d_name);
-                continue;
-            }
+                char dest_path[MAX_PATH];
+                if ((size_t)snprintf(dest_path, sizeof(dest_path), "%s/%s", category_path, entry->d_name) >= sizeof(dest_path)) {
+                    fprintf(stderr, "Destination path too long: %s/%s\n", category_path, entry->d_name);
+                    continue;
+                }
 
-            if (move_file_with_fallback(file_path, dest_path) != 0) {
-                fprintf(stderr, "Failed to move %s to %s\n", file_path, dest_path);
+                if (move_file_with_fallback(file_path, dest_path) != 0) {
+                    fprintf(stderr, "Failed to move %s to %s\n", file_path, dest_path);
+                } else {
+                    printf("Moved %s to %s\n", entry->d_name, category);
+                }
             } else {
-                printf("Moved %s to %s\n", entry->d_name, category);
+                printf("Skipping uncategorized file: %s\n", entry->d_name);
             }
         } else {
             printf("Skipping non-regular file: %s\n", entry->d_name);
