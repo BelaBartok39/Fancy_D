@@ -83,6 +83,7 @@ jobs:
       shell: bash
       run: |
         echo '  make'
+        make
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
