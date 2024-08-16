@@ -44,8 +44,6 @@ make install
 make clean
 ```
 
-This will install the `fancyD` executable in your `~/bin` directory. Ensure that `~/bin` is in your PATH.
-
 ## Usage
 
 Before running this baby on your files, feel free to use our python example scripts (normal/extreme). Either one creates a Test directory full of blank files with random extensions. You can use this to tryout Fancy and see how it easy it is before moving any of your own files. 
@@ -87,8 +85,7 @@ fancyD --list
 
 ### Options
 
-- `--add EXT CATEGORY`: Add a file extension to a category
-- `-v, --verbose`: Enable verbose logging (not fully implemented)
+- `-a, --add EXT CATEGORY`: Add a file extension to a category
 - `-h, --help`: Display help message
 - `-d, --default`: Create default categories
 - `-r, --reset`: Reset configuration files
