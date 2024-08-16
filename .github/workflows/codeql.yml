@@ -81,8 +81,8 @@ jobs:
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
     - if: matrix.build-mode == 'manual'
       shell: bash
-      run: |
-        echo '  make'
+      run:
+        echo 'running make'
         make
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
