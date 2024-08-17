@@ -87,7 +87,7 @@ jobs:
         sudo apt-get install -y build-essential libcjson-dev check
 
         # Print current directory and list files for debugging
-        pwd
+        
         ls -la
 
         # Run make commands
