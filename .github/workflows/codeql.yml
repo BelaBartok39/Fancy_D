@@ -82,15 +82,13 @@ jobs:
     - if: matrix.build-mode == 'manual'
       shell: bash
       run: 
-         # Install dependencies
         sudo apt-get update
         sudo apt-get install -y build-essential libcjson-dev check
 
-        # Print current directory and list files for debugging
-        
+
+        pwd
         ls -la
 
-        # Run make commands
         make
         sudo make install
         make clean
