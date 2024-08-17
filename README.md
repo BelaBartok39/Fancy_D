@@ -1,4 +1,4 @@
-# Fancy Directory Sort v1.1.0 (C Version)
+# Fancy Directory Sort v1.2.1 (C Version)
 
 Fancy Directory Sort (FancyD) is a pretty darn powerful and customizable file organization tool written in C. It automatically categorizes files in a directory based on their extensions. Assign individual extensions a directory or just use our quick defaults. Fancy!
 
