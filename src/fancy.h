@@ -72,6 +72,6 @@ void list_extensions(const char *config_folder);
 
 extern ExtensionMapping *mappings;
 extern int mapping_count;
-
+extern int verbose;
 
 #endif // FANCY_H

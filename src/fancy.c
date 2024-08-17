@@ -6,11 +6,11 @@
 // ============================================================================= //
 
 #include <fancy.h>
-
+#include <color_utils.h>
 
 ExtensionMapping *mappings = NULL;
 int mapping_count = 0;
-
+int verbose = 0;
 
 int check_path_length(const char *path) {
     if (strlen(path) >= PATH_MAX) {
@@ -24,14 +24,14 @@ void list_extensions(const char *config_folder){
     DIR *dir;
     struct dirent *ent;
     char file_path[MAX_PATH];
-
+    
     dir = opendir(config_folder);
     if (dir == NULL) {
         fprintf(stderr, "Unable to open config folder: %s\n", config_folder);
         return;
     }
     
-    printf("Current Extensions and Categories:\n");
+    print_green("\nCurrent Extensions and Categories:\n");
     printf("----------------------------------\n");
     
     while((ent = readdir(dir)) != NULL) {
@@ -83,7 +83,7 @@ void list_extensions(const char *config_folder){
             *underscore = '\0'; // null-terminate underscore
         }
         
-        printf("\nCategory: %s\n", category);
+        print_blue("\nCategory: %s\n", category);
         
         cJSON *extension;
         cJSON_ArrayForEach(extension, json) {
@@ -95,6 +95,7 @@ void list_extensions(const char *config_folder){
     }
 
     closedir(dir);
+    printf("\n");
 }
 
 char *create_fallback_path(const char *original_path) {
@@ -139,6 +140,7 @@ void print_usage(const char *program_name) {
     printf("  -h, --help          Display this help message\n");
     printf("  -d, --default       Create default categories\n");
     printf("  -r, --reset         Reset categories\n");
+    printf("  -v, --verbose       Enable verbose output\n");
 }
 
 void ensure_config_folder(const char *config_folder) {
@@ -318,7 +320,9 @@ void load_configs(const char *config_folder) {
     }
 
     closedir(dir);
-    printf("Total mappings loaded: %d\n", mapping_count);
+    if (verbose == 1) {
+        printf("Total mappings loaded: %d\n", mapping_count);
+    }
 }
 
 // Only used for debugging
@@ -346,6 +350,7 @@ void organize_files(const char *directory) {
     struct stat file_stat;
     bool uncategorized_files_found = false;
     bool handle_misc = false;
+    
 
     dir = opendir(directory);
     if (dir == NULL) {
@@ -444,13 +449,19 @@ void organize_files(const char *directory) {
                 if (move_file_with_fallback(file_path, dest_path) != 0) {
                     fprintf(stderr, "Failed to move %s to %s\n", file_path, dest_path);
                 } else {
-                    printf("Moved %s to %s\n", entry->d_name, category);
+                    if (verbose == 1) {
+                        printf("Moved %s to %s\n", entry->d_name, category);
+                    }
                 }
             } else {
-                printf("Skipping uncategorized file: %s\n", entry->d_name);
+                if (verbose == 1) { 
+                    printf("Skipping uncategorized file: %s\n", entry->d_name);
+                }
             }
         } else {
-            printf("Skipping non-regular file: %s\n", entry->d_name);
+            if (verbose == 1) {
+                printf("Skipping non-regular file: %s\n", entry->d_name);
+            }
         }
     }
 
