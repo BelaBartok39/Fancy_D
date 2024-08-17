@@ -69,6 +69,7 @@ int move_file_with_fallback(const char *src, const char *dest);
 
 void remove_extension_from_config(const char *config_path, const char *extension);
 void list_extensions(const char *config_folder);
+int check_duplicate_extension(const char *config_folder, const char *extension, const char *new_category);
 
 extern ExtensionMapping *mappings;
 extern int mapping_count;

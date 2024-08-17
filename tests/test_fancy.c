@@ -353,7 +353,7 @@ START_TEST(test_create_default_configs)
     create_default_configs(config_folder);
 
     // Check if default config files were created
-    const char *default_categories[] = {"documents", "images", "audio", "video"};
+    const char *default_categories[] = {"Documents", "Images", "Audio", "Video"};
     for (size_t i = 0; i < sizeof(default_categories) / sizeof(default_categories[0]); i++) {
         char filename[MAX_PATH];
         snprintf(filename, sizeof(filename), "%s_config.json", default_categories[i]);
@@ -371,9 +371,9 @@ START_TEST(test_create_default_configs)
     }
 
     // Verify content of a config file
-    char *file_path = safe_path_join(config_folder, "documents_config.json");
+    char *file_path = safe_path_join(config_folder, "Documents_config.json");
     if (file_path == NULL) {
-        ck_abort_msg("Failed to construct path for documents_config.json");
+        ck_abort_msg("Failed to construct path for Documents_config.json");
     }
 
     FILE *file = fopen(file_path, "r");
@@ -384,7 +384,7 @@ START_TEST(test_create_default_configs)
     fclose(file);
     content[read] = '\0';
     
-    printf("Content of documents_config.json:\n%s\n", content);
+    printf("Content of Documents_config.json:\n%s\n", content);
     
     ck_assert_str_ne(content, "");
     ck_assert_ptr_nonnull(strstr(content, ".txt"));

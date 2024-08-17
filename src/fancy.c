@@ -179,10 +179,10 @@ void create_default_configs(const char *config_folder) {
     load_configs(config_folder);
 
     const char *default_configs[] = {
-        "documents_config.json", "{\".txt\": \"Documents\", \".doc\": \"Documents\", \".pdf\": \"Documents\"}",
-        "images_config.json", "{\".jpg\": \"Images\", \".png\": \"Images\", \".gif\": \"Images\"}",
-        "audio_config.json", "{\".mp3\": \"Audio\", \".wav\": \"Audio\", \".flac\": \"Audio\"}",
-        "video_config.json", "{\".mp4\": \"Video\", \".avi\": \"Video\", \".mkv\": \"Video\"}"
+        "Documents_config.json", "{\".txt\": \"Documents\", \".doc\": \"Documents\", \".pdf\": \"Documents\"}",
+        "Images_config.json", "{\".jpg\": \"Images\", \".png\": \"Images\", \".gif\": \"Images\"}",
+        "Audio_config.json", "{\".mp3\": \"Audio\", \".wav\": \"Audio\", \".flac\": \"Audio\"}",
+        "Video_config.json", "{\".mp4\": \"Video\", \".avi\": \"Video\", \".mkv\": \"Video\"}"
     };
     
     for (size_t i = 0; i < sizeof(default_configs) / sizeof(default_configs[0]); i += 2) {
@@ -468,22 +468,19 @@ void organize_files(const char *directory) {
     closedir(dir);
 }
 
-void add_extension(const char *config_folder, const char *extension, const char *new_category) {
-    // Load current mappings
-    load_configs(config_folder);
+int check_duplicate_extension(const char *config_folder, const char *extension, const char *new_category){
 
-    // Check if the extension already exists in any category
     for (int i = 0; i < mapping_count; i++) {
         if (strcasecmp(mappings[i].extension, extension) == 0) {
             printf("Extension %s already exists in category %s.\n", extension, mappings[i].category);
             printf("Do you want to move it to %s? (y/n): ", new_category);
-            
+                
             char response;
             scanf(" %c", &response);
 
             if (response != 'y' && response != 'Y') {
                 printf("Extension %s will remain in category %s.\n", extension, mappings[i].category);
-                return;
+                return 1;
             }
 
             // Remove the extension from the existing category file
@@ -493,6 +490,17 @@ void add_extension(const char *config_folder, const char *extension, const char 
             break;
         }
     }
+    return 0;
+}
+
+void add_extension(const char *config_folder, const char *extension, const char *new_category) {
+    // Load current mappings
+    load_configs(config_folder);
+    // Check if the extension already exists in any category
+
+    if (check_duplicate_extension(config_folder, extension, new_category) == 1) {
+        return;
+    }  
 
     char new_config_path[MAX_PATH];
     snprintf(new_config_path, sizeof(new_config_path), "%s/%s_config.json", config_folder, new_category);
