@@ -12,6 +12,7 @@ Fancy Directory Sort (FancyD) is a pretty darn powerful and customizable file or
 - Ability to reset configuration files any time you want.
 - Support for a 'misc' category when no categories are defined
 - List command to display current category configurations
+- Verbose output option for detailed output to see where each file is going. 
 
 ## Installation
 
@@ -46,7 +47,7 @@ make clean
 
 ## Usage
 
-Before running this baby on your files, feel free to use our python example scripts (normal/extreme). Either one creates a Test directory full of blank files with random extensions. You can use this to tryout Fancy and see how it easy it is before moving any of your own files. 
+Before running this baby on your files, feel free to use our python example scripts (normal/extreme). Either one creates a Test directory full of blank files with random extensions. You can use this to tryout Fancy and see how easy it is before moving any of your own files. 
 
 ### Basic Usage
 To organize files in the current directory:
@@ -83,6 +84,12 @@ To list all current category configurations:
 fancyD --list
 ```
 
+### Verbose Output
+To enable verbose output:
+```bash
+fancyD --verbose
+```
+
 ### Options
 
 - `-a, --add EXT CATEGORY`: Add a file extension to a category
@@ -90,16 +97,17 @@ fancyD --list
 - `-d, --default`: Create default categories
 - `-r, --reset`: Reset configuration files
 - `-l, --list`: List all current category configurations
+- `-v, --verbose`: Enable verbose output
 
 ## Configuration
 FancyD uses JSON configuration files located in `~/.fancyD/` to define file categories. Each category has its own config file (e.g., `document_config.json`, `image_config.json`).
 
-Example configuration file (`image_config.json`):
+Example configuration file (`COMP_2100_config.json`):
 ```json
 {
-  ".jpg": "JPEG",
-  ".png": "PNG",
-  ".gif": "GIF"
+  ".jpg": "COMP_2100",
+  ".txt": "COMP_2100",
+  ".py": "COMP_2100",
 }
 ```
 You can modify these files to customize your sorting categories and extensions.
@@ -117,7 +125,6 @@ If you encounter any issues:
 
 ## Known Issues
 
-- The verbose logging option (`-v`) is not fully implemented.
 - There may be some inconsistencies in handling the `--add` option. (Rare at the moment)
 
 ## Contributing
