@@ -1,10 +1,9 @@
-// ============================================================================= //
-// Program Name: FancyD (Fancy Directory Organizer)
-// Author: Nicholas D. Redmond (3A3YN1CKY)
-// Date: 8/13/2024
-// Description: Simple program to organize files in a directory based on their ext
-// ============================================================================= //
-
+/* =============================================================================
+   Program Name: FancyD (Fancy Directory Organizer)
+   Author: Nicholas D. Redmond (3A3YN1CKY)
+   Date: 8/13/2024
+   Description: Simple program to organize files in a directory based on their ext
+   ============================================================================= */
 
 #ifndef FANCY_H // prevents crazy header collisions from ever happening
 #define FANCY_H
