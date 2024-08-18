@@ -184,6 +184,27 @@ void create_default_configs(const char *config_folder) {
         "Audio_config.json", "{\".mp3\": \"Audio\", \".wav\": \"Audio\", \".flac\": \"Audio\"}",
         "Video_config.json", "{\".mp4\": \"Video\", \".avi\": \"Video\", \".mkv\": \"Video\"}"
     };
+
+    // Need to check for conflicts here.
+            
+    for(int i = 0; i < 8; i+=2){
+        cJSON *root = cJSON_Parse(default_configs[i+1]);
+        if(!root){
+            printf("Error parsing JSON\n");
+            return 1;
+        }
+        
+        for (cJSON *item = root->child; item; item = item->next){
+            if(check_duplicate_extension(config_folder, item->string, default_configs[i]) == 1){
+                cJSON_Delete(root);
+                printf("Error: Duplicate extension found\n");
+                return 1;
+            }
+        }
+    }
+
+  
+    // No conflicts, create default configs
     
     for (size_t i = 0; i < sizeof(default_configs) / sizeof(default_configs[0]); i += 2) {
         char file_path[MAX_PATH];

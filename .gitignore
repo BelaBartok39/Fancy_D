@@ -10,6 +10,9 @@ TODO.md
 # Ignore the build directory
 build/
 
+# Ignore the config directory
+config/
+
 # Ignore log files
 *.log
 
