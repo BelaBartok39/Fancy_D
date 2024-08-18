@@ -59,9 +59,12 @@ int main(int argc, char *argv[]) {
                 print_usage(argv[0]);
                 return 0;
             case 'd':
-                ensure_config_folder(config_folder);
-                create_default_configs(config_folder);
-                print_green("Default categories created\n");
+                ensure_config_folder(config_folder);  
+                if (create_default_configs(config_folder) != 1){
+                    print_green("Default categories created\n");
+                } else {
+                    print_red("Failed to create default categories\n");
+                }
                 return 0;
             case 'r':
                 ensure_config_folder(config_folder);

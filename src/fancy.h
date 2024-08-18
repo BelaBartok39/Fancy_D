@@ -53,7 +53,7 @@ typedef struct {
 // Function prototypes
 void print_usage(const char *program_name);
 void ensure_config_folder(const char *config_folder);
-void create_default_configs(const char *config_folder);
+int create_default_configs(const char *config_folder);
 void load_configs(const char *config_folder);
 void organize_files(const char *directory);
 void add_extension(const char *config_folder, const char *extension, const char *new_category);

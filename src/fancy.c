@@ -172,7 +172,7 @@ void delete_config_files(const char *config_folder) {
     }
 }
 
-void create_default_configs(const char *config_folder) {
+int create_default_configs(const char *config_folder) {
     printf("Creating default configs in folder: %s\n", config_folder);
     
     // Load existing configurations
@@ -197,7 +197,8 @@ void create_default_configs(const char *config_folder) {
         for (cJSON *item = root->child; item; item = item->next){
             if(check_duplicate_extension(config_folder, item->string, default_configs[i]) == 1){
                 cJSON_Delete(root);
-                printf("Error: Duplicate extension found\n");
+                print_red("Error: Duplicate extension found\n");
+                // need to handle this case
                 return 1;
             }
         }
@@ -232,6 +233,7 @@ void create_default_configs(const char *config_folder) {
     for (int i = 0; i < mapping_count; i++) {
         printf("%s -> %s\n", mappings[i].extension, mappings[i].category);
     }
+    return 0;
 }
 
 void load_configs(const char *config_folder) {
