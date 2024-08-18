@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <libgen.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <getopt.h>
@@ -24,6 +25,12 @@
 #include <strings.h>
 #include <limits.h>
 #include <stdbool.h>
+
+#ifndef PROJECT_ROOT
+#error "PROJECT_ROOT is not defined. Make sure to compile with the correct Makefile."
+#endif
+
+#define PATH_TO_ROOT PROJECT_ROOT
 
 #define MAX_EXTENSIONS 1000
 #define FALLBACK_PREFIX "/tmp/fancyD_fallback_"
@@ -53,22 +60,27 @@ typedef struct {
 void print_usage(const char *program_name);
 void ensure_config_folder(const char *config_folder);
 int create_default_configs(const char *config_folder);
+
 void load_configs(const char *config_folder);
 void organize_files(const char *directory);
 void add_extension(const char *config_folder, const char *extension, const char *new_category);
 void print_string_details(const char* str);
+
 void reload_mappings(const char *config_folder);
 void reset_mappings(const char *config_folder);
 void delete_config_files(const char *config_folder);
 int delete_callback(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf);
 
 int check_path_length(const char *path);
-char *create_fallback_path(const char *original_path);
+char* create_fallback_path(const char *original_path);
 int move_file_with_fallback(const char *src, const char *dest);
 
 void remove_extension_from_config(const char *config_path, const char *extension);
 void list_extensions(const char *config_folder);
 int check_duplicate_extension(const char *config_folder, const char *extension, const char *new_category);
+char* find_project_root();
+char* get_default_config_path();
+
 
 extern ExtensionMapping *mappings;
 extern int mapping_count;

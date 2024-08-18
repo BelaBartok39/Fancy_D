@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200809L
+PROJECT_ROOT = $(shell pwd)
+CFLAGS = -Wall -Wextra -g -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200809L -DPROJECT_ROOT=\"$(PROJECT_ROOT)\"
 LIBS = -lcjson
 INCLUDES = $(shell pkg-config --cflags cjson 2>/dev/null || echo "") -Isrc
 SRC_DIR = src

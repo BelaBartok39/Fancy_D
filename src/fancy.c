@@ -172,63 +172,106 @@ void delete_config_files(const char *config_folder) {
     }
 }
 
-int create_default_configs(const char *config_folder) {
-    printf("Creating default configs in folder: %s\n", config_folder);
-    
-    // Load existing configurations
-    load_configs(config_folder);
 
-    const char *default_configs[] = {
-        "Documents_config.json", "{\".txt\": \"Documents\", \".doc\": \"Documents\", \".pdf\": \"Documents\"}",
-        "Images_config.json", "{\".jpg\": \"Images\", \".png\": \"Images\", \".gif\": \"Images\"}",
-        "Audio_config.json", "{\".mp3\": \"Audio\", \".wav\": \"Audio\", \".flac\": \"Audio\"}",
-        "Video_config.json", "{\".mp4\": \"Video\", \".avi\": \"Video\", \".mkv\": \"Video\"}"
-    };
+char* find_project_root() {
+    static char path[PATH_MAX];
+    snprintf(path, sizeof(path), "%s/.fancyd_root", PATH_TO_ROOT);
 
-    // Need to check for conflicts here.
-            
-    for(int i = 0; i < 8; i+=2){
-        cJSON *root = cJSON_Parse(default_configs[i+1]);
-        if(!root){
-            printf("Error parsing JSON\n");
-            return 1;
-        }
-        
-        for (cJSON *item = root->child; item; item = item->next){
-            if(check_duplicate_extension(config_folder, item->string, default_configs[i]) == 1){
-                cJSON_Delete(root);
-                print_red("Error: Duplicate extension found\n");
-                // need to handle this case
-                return 1;
-            }
-        }
+    if (access(path, F_OK) == 0) {
+        // .fancyd_root exists, so PATH_TO_ROOT is correct
+        strncpy(path, PATH_TO_ROOT, sizeof(path) - 1);
+        path[sizeof(path) - 1] = '\0';
+        return path;
     }
 
-  
-    // No conflicts, create default configs
-    
-    for (size_t i = 0; i < sizeof(default_configs) / sizeof(default_configs[0]); i += 2) {
-        char file_path[MAX_PATH];
-        snprintf(file_path, sizeof(file_path), "%s/%s", config_folder, default_configs[i]);
-        
-        printf("Attempting to create config file: %s\n", file_path);
+    fprintf(stderr, "Project root marker not found in %s\n", PATH_TO_ROOT);
+    return NULL;
+}
 
-        FILE *f = fopen(file_path, "w");
-        if (f == NULL) {
-            printf("Failed to create config file: %s (errno: %d)\n", file_path, errno);
-            perror("Error details");
+char* get_default_config_path() {
+    static char config_path[PATH_MAX];
+    snprintf(config_path, sizeof(config_path), "%s/default_configs", PATH_TO_ROOT);
+    
+    if (access(config_path, F_OK) != 0) {
+        fprintf(stderr, "Default config directory not found: %s\n", config_path);
+        return NULL;
+    }
+
+    return config_path;
+}
+
+
+int create_default_configs(const char *user_config_folder) {
+    const char *default_config_folder = get_default_config_path();
+    if (default_config_folder == NULL) {
+        fprintf(stderr, "Unable to determine default config folder path\n");
+        return 1;
+    }
+    
+    DIR *dir;
+    struct dirent *ent;
+    char file_path[MAX_PATH];
+
+    // Load existing configurations
+    load_configs(user_config_folder);
+
+    dir = opendir(default_config_folder);
+    if (dir == NULL) {
+        fprintf(stderr, "Unable to open default config folder: %s\n", default_config_folder);
+        return 1;
+    }
+
+    while ((ent = readdir(dir)) != NULL) {
+        if (strstr(ent->d_name, "_config.json") == NULL) {
             continue;
         }
+
+        snprintf(file_path, sizeof(file_path), "%s/%s", default_config_folder, ent->d_name);
         
-        fputs(default_configs[i+1], f);
+        FILE *f = fopen(file_path, "r");
+        if (f == NULL) {
+            fprintf(stderr, "Unable to open file: %s\n", file_path);
+            continue;
+        }
+
+        fseek(f, 0, SEEK_END);
+        long fsize = ftell(f);
+        fseek(f, 0, SEEK_SET);
+
+        char *json_str = malloc(fsize + 1);
+        fread(json_str, fsize, 1, f);
         fclose(f);
-        
-        printf("Successfully created config file: %s\n", file_path);
+        json_str[fsize] = 0;
+
+        cJSON *json = cJSON_Parse(json_str);
+        free(json_str);
+
+        if (json == NULL) {
+            fprintf(stderr, "Error parsing JSON in file: %s\n", file_path);
+            continue;
+        }
+
+        char *category = strdup(ent->d_name);
+        char *underscore = strchr(category, '_');
+        if (underscore != NULL) {
+            *underscore = '\0';
+        }
+
+        cJSON *extension;
+        cJSON_ArrayForEach(extension, json) {
+            if (check_duplicate_extension(user_config_folder, extension->string, category) == 0) {
+                // No conflict, add to user config
+                add_extension(user_config_folder, extension->string, extension->valuestring);
+            } else {
+                printf("Skipping conflicting extension %s for category %s\n", extension->string, category);
+            }
+        }
+
+        cJSON_Delete(json);
+        free(category);
     }
 
-    // Reload configurations after changes
-    load_configs(config_folder);
-
+    closedir(dir);
     printf("Finished creating default configs. Current mappings:\n");
     for (int i = 0; i < mapping_count; i++) {
         printf("%s -> %s\n", mappings[i].extension, mappings[i].category);

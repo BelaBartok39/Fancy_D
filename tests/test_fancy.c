@@ -143,31 +143,65 @@ START_TEST(test_create_default_configs_with_existing)
     // Add a custom extension that conflicts with defaults
     add_extension(config_folder, ".png", "CustomImages");
 
+    // Create a temporary file with 'y' as content
+    FILE *temp = tmpfile();
+    if (temp == NULL) {
+        ck_abort_msg("Failed to create temporary file");
+    }
+    fprintf(temp, "y\n");
+    rewind(temp);
+
+    // Save the original stdin
+    FILE *old_stdin = stdin;
+
+    // Redirect stdin to our temporary file
+    stdin = temp;
+
     // Create default configs
     create_default_configs(config_folder);
+
+    // Restore the original stdin
+    stdin = old_stdin;
+
+    // Close and delete the temporary file
+    fclose(temp);
 
     // Verify .png is still in CustomImages category
     load_configs(config_folder);
     int found = 0;
     for (int i = 0; i < mapping_count; i++) {
         if (strcmp(mappings[i].extension, ".png") == 0) {
-            ck_assert_str_eq(mappings[i].category, "CustomImages");
+            if (strcmp(mappings[i].category, "CustomImages") != 0) {
+                ck_abort_msg("Expected .png to be in CustomImages category, but found it in %s", mappings[i].category);
+            }
             found = 1;
             break;
         }
     }
-    ck_assert_int_eq(found, 1);
+    if (!found) {
+        ck_abort_msg(".png extension not found in mappings");
+    }
 
     // Verify other default extensions were added
     int jpg_found = 0;
     for (int i = 0; i < mapping_count; i++) {
         if (strcmp(mappings[i].extension, ".jpg") == 0) {
-            ck_assert_str_eq(mappings[i].category, "Images");
+            if (strcmp(mappings[i].category, "Images") != 0) {
+                ck_abort_msg("Expected .jpg to be in Images category, but found it in %s", mappings[i].category);
+            }
             jpg_found = 1;
             break;
         }
     }
-    ck_assert_int_eq(jpg_found, 1);
+    if (!jpg_found) {
+        ck_abort_msg(".jpg extension not found in mappings");
+    }
+
+    // Print all mappings for debugging
+    printf("Current mappings:\n");
+    for (int i = 0; i < mapping_count; i++) {
+        printf("%s -> %s\n", mappings[i].extension, mappings[i].category);
+    }
 
     // Clean up
     delete_config_files(config_folder);
