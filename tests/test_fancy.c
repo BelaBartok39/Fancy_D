@@ -148,7 +148,7 @@ START_TEST(test_create_default_configs_with_existing)
     if (temp == NULL) {
         ck_abort_msg("Failed to create temporary file");
     }
-    fprintf(temp, "y\n");
+    fprintf(temp, "n\n");
     rewind(temp);
 
     // Save the original stdin

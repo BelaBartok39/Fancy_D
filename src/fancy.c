@@ -201,31 +201,29 @@ char* get_default_config_path() {
 }
 
 
-int create_default_configs(const char *user_config_folder) {
+int create_default_configs(const char *config_folder) {
     const char *default_config_folder = get_default_config_path();
     if (default_config_folder == NULL) {
         fprintf(stderr, "Unable to determine default config folder path\n");
         return 1;
     }
-    
-    DIR *dir;
-    struct dirent *ent;
-    char file_path[MAX_PATH];
 
     // Load existing configurations
-    load_configs(user_config_folder);
+    load_configs(config_folder);
 
-    dir = opendir(default_config_folder);
+    DIR *dir = opendir(default_config_folder);
     if (dir == NULL) {
         fprintf(stderr, "Unable to open default config folder: %s\n", default_config_folder);
         return 1;
     }
 
+    struct dirent *ent;
     while ((ent = readdir(dir)) != NULL) {
         if (strstr(ent->d_name, "_config.json") == NULL) {
             continue;
         }
 
+        char file_path[MAX_PATH];
         snprintf(file_path, sizeof(file_path), "%s/%s", default_config_folder, ent->d_name);
         
         FILE *f = fopen(file_path, "r");
@@ -251,31 +249,21 @@ int create_default_configs(const char *user_config_folder) {
             continue;
         }
 
-        char *category = strdup(ent->d_name);
-        char *underscore = strchr(category, '_');
-        if (underscore != NULL) {
-            *underscore = '\0';
-        }
-
         cJSON *extension;
         cJSON_ArrayForEach(extension, json) {
-            if (check_duplicate_extension(user_config_folder, extension->string, category) == 0) {
+            if (check_duplicate_extension(config_folder, extension->string, extension->valuestring) == 0) {
                 // No conflict, add to user config
-                add_extension(user_config_folder, extension->string, extension->valuestring);
+                add_extension(config_folder, extension->string, extension->valuestring);
             } else {
-                printf("Skipping conflicting extension %s for category %s\n", extension->string, category);
+                // Conflict found, print a message
+                printf("Skipping conflicting extension %s\n", extension->string);
             }
         }
 
         cJSON_Delete(json);
-        free(category);
     }
 
     closedir(dir);
-    printf("Finished creating default configs. Current mappings:\n");
-    for (int i = 0; i < mapping_count; i++) {
-        printf("%s -> %s\n", mappings[i].extension, mappings[i].category);
-    }
     return 0;
 }
 
@@ -534,8 +522,7 @@ void organize_files(const char *directory) {
     closedir(dir);
 }
 
-int check_duplicate_extension(const char *config_folder, const char *extension, const char *new_category){
-
+int check_duplicate_extension(const char *config_folder, const char *extension, const char *new_category) {
     for (int i = 0; i < mapping_count; i++) {
         if (strcasecmp(mappings[i].extension, extension) == 0) {
             printf("Extension %s already exists in category %s.\n", extension, mappings[i].category);
@@ -562,7 +549,6 @@ int check_duplicate_extension(const char *config_folder, const char *extension, 
 void add_extension(const char *config_folder, const char *extension, const char *new_category) {
     // Load current mappings
     load_configs(config_folder);
-    // Check if the extension already exists in any category
 
     if (check_duplicate_extension(config_folder, extension, new_category) == 1) {
         return;
