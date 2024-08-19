@@ -103,7 +103,7 @@ START_TEST(test_add_duplicate_extension)
 
     // Attempt to add .txt to a different category
     // Simulate user input 'n' to keep it in the original category
-    FILE *input = fmemopen("n", 1, "r");
+    FILE *input = fmemopen("n\n", 2, "r");
     FILE *old_stdin = stdin;
     stdin = input;
 
@@ -272,7 +272,10 @@ START_TEST(test_add_extension_and_move)
     }
     
     file = fopen(config_path, "r");
-    ck_assert_ptr_null(file);  // File should not exist
+    if (file != NULL) {
+        fclose(file);
+        ck_abort_msg("Images_config.json should not exist or be empty");
+    }
 
     // Clean up
     free(config_path);
