@@ -134,10 +134,6 @@ If you encounter any issues:
 5. For long file paths, FancyD implements checks to ensure they don't exceed the maximum path length.
 6. Use the `--list` option to verify your current category configurations.
 
-## Known Issues
-
-- There may be some inconsistencies in handling the `--add` option. (Rare at the moment)
-
 ## Contributing
 Contributions (and suggestions) to Fancy Directory Sort are welcome! Please feel free to submit pull requests, create issues or spread the word.
 
