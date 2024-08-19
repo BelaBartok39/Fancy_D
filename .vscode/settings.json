@@ -1,0 +1,9 @@
+{
+  "makefile.launchConfigurations": [
+    {
+      "cwd": "/home/babynicky/Dev/Fancy_CDir/bin",
+      "binaryPath": "/home/babynicky/Dev/Fancy_CDir/bin/fancyD",
+      "binaryArgs": []
+    }
+  ]
+}

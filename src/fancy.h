@@ -1,8 +1,9 @@
+
 /* =============================================================================
    Program Name: FancyD (Fancy Directory Organizer)
    Author: Nicholas D. Redmond (3A3YN1CKY)
    Date: 8/13/2024
-   Description: Simple program to organize files in a directory based on their ext
+   Description: Simple program to organize files in a directory.
    ============================================================================= */
 
 #ifndef FANCY_H
@@ -26,7 +27,7 @@
 #include <stdbool.h>
 
 #ifndef PROJECT_ROOT
-#error "PROJECT_ROOT is not defined. Make sure to compile with the correct Makefile."
+#error "PROJECT_ROOT is not defined. Compile with the correct Makefile."
 #endif
 
 #define PATH_TO_ROOT PROJECT_ROOT
@@ -110,4 +111,4 @@ extern ExtensionMapping *mappings;
 extern int mapping_count;
 extern int verbose;
 
-#endif // FANCY_H
+#endif 

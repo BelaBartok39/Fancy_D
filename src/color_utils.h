@@ -2,7 +2,7 @@
    Program Name: FancyD (Fancy Directory Organizer)
    Author: Nicholas D. Redmond (3A3YN1CKY)
    Date: 8/13/2024
-   Description: Simple program to organize files in a directory based on their ext
+   Description: Simple program to organize files in a directory.
    ============================================================================= */
 
 #ifndef COLOR_UTILS_H
@@ -26,4 +26,4 @@
 #define print_magenta(fmt, ...) print_color(ANSI_COLOR_MAGENTA, fmt, ##__VA_ARGS__)
 #define print_cyan(fmt, ...) print_color(ANSI_COLOR_CYAN, fmt, ##__VA_ARGS__)
 
-#endif // COLOR_UTILS_H
+#endif

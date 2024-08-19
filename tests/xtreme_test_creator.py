@@ -2,7 +2,8 @@
     Program Name: FancyD (Fancy Directory Organizer)
     Author: Nicholas D. Redmond (3A3YN1CKY)
     Date: 8/13/2024
-    Description: Simple program to organize files in a directory based on their ext                    ============================================================================= '''
+    Description: Simple program to organize files in a directory.                    
+    ============================================================================= '''
 
 import random
 import string

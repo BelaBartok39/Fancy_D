@@ -2,7 +2,7 @@
    Program Name: FancyD (Fancy Directory Organizer)
    Author: Nicholas D. Redmond (3A3YN1CKY)
    Date: 8/13/2024
-   Description: Simple program to organize files in a directory based on their ext
+   Description: Simple program to organize files in a directory.
    ============================================================================= */
 
 #include <fancy.h>
@@ -16,10 +16,21 @@ bool is_config_file(const char *filename) {
     return strstr(filename, "_config.json") != NULL;
 }
 
+void print_usage(const char *program_name) {
+    printf("Usage: %s [OPTIONS] [DIRECTORY]\n", program_name);
+    printf("Options:\n");
+    printf("  -a, --add EXT CATEGORY  Add a file extension to a category\n");
+    printf("  -l, --list          Display current categories\n");
+    printf("  -h, --help          Display this help message\n");
+    printf("  -d, --default       Create default categories\n");
+    printf("  -r, --reset         Reset categories\n");
+    printf("  -v, --verbose       Enable verbose output\n");
+}
+
 char* read_file_content(const char *filepath) {
     FILE *file = fopen(filepath, "r");
     if (file == NULL) {
-        fprintf(stderr, "Unable to open file: %s\n", filepath);
+        // fprintf(stderr, "Unable to open file: %s\n", filepath); // Use for debug
         return NULL;
     }
 
@@ -96,7 +107,6 @@ void print_category_extensions(const char *filename, cJSON *json) {
 
     free(category);
 }
-
 
 char* construct_file_path(const char *folder, const char *filename) {
     char *file_path = malloc(MAX_PATH);
@@ -499,17 +509,6 @@ int move_file_with_fallback(const char *src, const char *dest) {
     return rename(src, dest);
 }
 
-void print_usage(const char *program_name) {
-    printf("Usage: %s [OPTIONS] [DIRECTORY]\n", program_name);
-    printf("Options:\n");
-    printf("  -a, --add EXT CATEGORY  Add a file extension to a category\n");
-    printf("  -l, --list          Display current categories\n");
-    printf("  -h, --help          Display this help message\n");
-    printf("  -d, --default       Create default categories\n");
-    printf("  -r, --reset         Reset categories\n");
-    printf("  -v, --verbose       Enable verbose output\n");
-}
-
 void ensure_config_folder(const char *config_folder) {
     struct stat st = {0};
     if (stat(config_folder, &st) == -1) {
@@ -634,7 +633,6 @@ void organize_files(const char *directory) {
     process_directory(directory, handle_misc);
 }
 
-// Make sure this function is already implemented or add it if it's missing
 int delete_callback(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
     (void)sb;
     (void)typeflag;

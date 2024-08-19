@@ -2,7 +2,7 @@
    Program Name: FancyD (Fancy Directory Organizer)
    Author: Nicholas D. Redmond (3A3YN1CKY)
    Date: 8/13/2024
-   Description: Simple program to organize files in a directory based on their ext
+   Description: Simple program to organize files in a directory.
    ============================================================================= */
 
 #include <fancy.h>
@@ -10,7 +10,7 @@
 #include <utils.h>
 
 void segfault_handler(int signal) {
-    (void)signal; // Suppress unused parameter warning
+    (void)signal; // Suppress if not used
     print_red("Segmentation fault caught. Exiting...\n");
     exit(1);
 }
@@ -121,8 +121,8 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "Failed to construct path for misc_config.json\n");
                     return 1;
                 }
-// Use misc_config_path...
 
+                // Use misc_config_path...
                 FILE *misc_file = fopen(misc_config_path, "w");
                 if (misc_file) {
                     fprintf(misc_file, "{\n  \"*\": \"misc\"\n}");
@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
         organize_files(directory);
     }
 
-    // Free allocated memory
+    // Free all that precious memory
     for (int i = 0; i < mapping_count; i++) {
         free(mappings[i].extension);
         free(mappings[i].category);
@@ -152,4 +152,3 @@ int main(int argc, char *argv[]) {
     free(mappings);
     return 0;
 }
-
